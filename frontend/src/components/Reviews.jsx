@@ -51,21 +51,41 @@ const reviews = [
   }
 ];
 
-const Reviews = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
-  const nextSlide = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex === reviews.length - 1 ? 0 : prevIndex + 1
-    );
-  };
-  
-  const prevSlide = () => {
-    setCurrentIndex((prevIndex) => 
-      prevIndex === 0 ? reviews.length - 1 : prevIndex - 1
-    );
-  };
+const ReviewCard = ({ review }) => (
+  <div className="bg-gray-900/60 backdrop-blur-md p-6 rounded-2xl border border-white/5 flex flex-col gap-4 w-[380px] min-h-[250px] h-full mx-3 hover:border-gray-600 transition-colors shadow-lg group">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 rounded-full overflow-hidden border border-purple-500/30 shrink-0">
+        <img
+          src={review.image}
+          alt={review.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.src = 'https://placehold.co/48';
+          }}
+        />
+      </div>
+      <div>
+        <h3 className="text-sm font-bold text-white tracking-tight leading-none mb-1">{review.name}</h3>
+        <p className="text-purple-400 text-xs">{review.position}</p>
+      </div>
+    </div>
+    <div className="flex items-center gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <Star
+          key={i}
+          size={14}
+          className={i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-700"}
+        />
+      ))}
+    </div>
+    <blockquote className="text-gray-300 text-sm leading-relaxed relative mt-1 flex-1">
+      <span className="text-3xl text-purple-500/20 font-serif absolute -top-3 -left-2 select-none">"</span>
+      <span className="relative z-10 pl-3 block">{review.content}</span>
+    </blockquote>
+  </div>
+);
 
+const Reviews = () => {
   return (
     <section id="testimonials" className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-[#0B0B1F]/0 via-[#0B0B1F] to-[#0B0B1F]/0 pointer-events-none"></div>
@@ -81,91 +101,31 @@ const Reviews = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl font-bold mb-4 text-white">
+          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
             Trusted by Web3 Pioneers
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             Join hundreds of innovative teams who've upgraded to our decentralized monitoring platform.
           </p>
         </motion.div>
 
-        <div className="relative px-4">
-          <div className="overflow-hidden">
-            <div
-              className="flex transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-            >
-              {reviews.map((review) => (
-                <div key={review.id} className="min-w-full px-4">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white/5 backdrop-blur-md p-8 rounded-2xl border border-white/10 flex flex-col md:flex-row gap-8"
-                  >
-                    <div className="md:w-1/3">
-                      <div className="mb-4 relative w-20 h-20 rounded-full overflow-hidden border-2 border-purple-500/50">
-                        <img
-                          src={review.image}
-                          alt={`${review.name}'s portrait`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target;
-                            target.src = 'https://placehold.co/48';
-                          }}
-                        />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-1">{review.name}</h3>
-                      <p className="text-gray-400 mb-2">{review.position}</p>
-                      <p className="text-purple-400 text-sm">{review.company}</p>
-                      <div className="flex items-center mt-4">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={18}
-                            className={i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-600"}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="md:w-2/3">
-                      <div className="text-5xl text-purple-500/30 font-serif mb-4">"</div>
-                      <blockquote className="text-xl text-gray-300 italic mb-6">
-                        {review.content}
-                      </blockquote>
-                    </div>
-                  </motion.div>
-                </div>
-              ))}
-            </div>
+        {/* Infinite Marquee Container */}
+        <div className="relative flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)] group py-4">
+          
+          {/* First block of cards */}
+          <div className="flex shrink-0 animate-[scroll-left_50s_linear_infinite] group-hover:[animation-play-state:paused] items-stretch">
+            {reviews.map((review) => (
+              <ReviewCard key={`first-${review.id}`} review={review} />
+            ))}
+          </div>
+          
+          {/* Second block of cards for seamless looping */}
+          <div className="flex shrink-0 animate-[scroll-left_50s_linear_infinite] group-hover:[animation-play-state:paused] items-stretch">
+            {reviews.map((review) => (
+              <ReviewCard key={`second-${review.id}`} review={review} />
+            ))}
           </div>
 
-          <button
-            onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full backdrop-blur-sm z-10 transition-all"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full backdrop-blur-sm z-10 transition-all"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
-
-        <div className="flex justify-center mt-8">
-          {reviews.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-3 h-3 mx-1 rounded-full ${
-                currentIndex === index ? "bg-purple-500" : "bg-gray-700"
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            ></button>
-          ))}
         </div>
       </div>
     </section>
