@@ -19,7 +19,7 @@ const Navbar = () => {
         setIsScrolled(false);
       }
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -49,7 +49,7 @@ const Navbar = () => {
   const handleFeaturesClick = (e) => {
     e.preventDefault();
     setIsOpen(false);
-    
+
     // If already on homepage, just scroll to features section
     if (location.pathname === '/') {
       const featuresSection = document.getElementById('features');
@@ -63,11 +63,10 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out rounded-full border border-white/[0.1] ${
-      isScrolled 
-        ? "top-6 bg-black/5 backdrop-blur-sm py-2 w-[80%] max-w-4xl shadow-2xl hover:bg-black/80 hover:backdrop-blur-lg hover:py-4 hover:w-[90%] hover:max-w-6xl hover:shadow-[0_0_30px_rgba(0,0,0,0.5)]" 
+    <nav className={`fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out rounded-full border border-white/[0.1] ${isScrolled
+        ? "top-6 bg-black/5 backdrop-blur-sm py-2 w-[80%] max-w-4xl shadow-2xl hover:bg-black/80 hover:backdrop-blur-lg hover:py-4 hover:w-[90%] hover:max-w-6xl hover:shadow-[0_0_30px_rgba(0,0,0,0.5)]"
         : "top-4 bg-black/20 backdrop-blur-md py-4 w-[90%] max-w-6xl shadow-lg"
-    }`}>
+      }`}>
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate("/")}>
@@ -84,8 +83,8 @@ const Navbar = () => {
             <Link to="/validator" className="text-white/90 hover:text-[#E36FFF] transition duration-200 text-sm">
               Become a Validator
             </Link>
-            <Link 
-              to="/dashboard" 
+            <Link
+              to="/dashboard"
               onClick={handleDashboardClick}
               className="text-white/90 hover:text-[#E36FFF] transition duration-200 text-sm"
             >
@@ -130,32 +129,32 @@ const Navbar = () => {
         {isOpen && (
           <div className="md:hidden mt-4 bg-black/80 backdrop-blur-xl rounded-xl border border-white/[0.08] p-4 absolute top-full left-0 right-0 max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div className="flex flex-col space-y-4">
-              <button 
+              <button
                 onClick={(e) => {
                   handleFeaturesClick(e);
                   setIsOpen(false);
-                }} 
+                }}
                 className="text-white/90 hover:text-[#E36FFF] transition duration-200 text-sm text-left"
               >
                 Features
               </button>
-              <Link 
-                to="/pricing" 
+              <Link
+                to="/pricing"
                 onClick={() => setIsOpen(false)}
                 className="text-white/90 hover:text-[#E36FFF] transition duration-200 text-sm"
               >
                 Pricing
               </Link>
-              <Link 
-                to="/validator" 
+              <Link
+                to="/validator"
                 onClick={() => setIsOpen(false)}
                 className="text-white/90 hover:text-[#E36FFF] transition duration-200 text-sm"
               >
                 Become a Validator
               </Link>
-              
-              <Link 
-                to="/dashboard" 
+
+              <Link
+                to="/dashboard"
                 onClick={(e) => {
                   setIsOpen(false);
                   handleDashboardClick(e);
@@ -164,7 +163,7 @@ const Navbar = () => {
               >
                 Dashboard
               </Link>
-              
+
               <div className="pt-2 border-t border-white/10 flex flex-col space-y-2">
                 {isSignedIn ? (
                   <div className="flex items-center">

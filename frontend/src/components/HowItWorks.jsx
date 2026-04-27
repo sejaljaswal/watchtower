@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, Globe, SearchCode, AlertCircle, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -59,7 +60,7 @@ const HowItWorks = () => {
           </p>
         </motion.div>
         
-        <div className="space-y-8">
+        <div className="flex flex-col gap-6">
           {/* First Row */}
           <motion.div
             variants={rowVariants}
@@ -93,16 +94,21 @@ const HowItWorks = () => {
                 whileInView="visible"
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                className="relative group"
+                className="relative group h-full"
               >
-                <div className="bg-[#151524] p-6 rounded-2xl hover:bg-[#1A1A2E] transition-all duration-300 border border-gray-800">
-                  <div className="w-14 h-14 rounded-full bg-[#2D2D3D] flex items-center justify-center mx-auto mb-4">
-                    <item.icon className="text-purple-500" size={28} />
-                  </div>
-                  <h3 className="text-white text-lg font-medium mb-2">{item.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">{item.description}</p>
-                </div>
+                <CardContainer containerClassName="py-0 h-full w-full" className="inter-var w-full h-full">
+                  <CardBody className="bg-[#151524] relative group/card hover:shadow-2xl hover:shadow-purple-500/[0.2] hover:bg-[#1A1A2E] transition-all duration-300 border border-gray-800 w-full h-full rounded-2xl p-6 flex flex-col items-center">
+                    <CardItem translateZ="50" className="w-14 h-14 rounded-full bg-[#2D2D3D] flex items-center justify-center mb-4">
+                      <item.icon className="text-purple-500" size={28} />
+                    </CardItem>
+                    <CardItem translateZ="60" className="text-white text-lg font-medium mb-2 text-center w-full">
+                      {item.title}
+                    </CardItem>
+                    <CardItem as="p" translateZ="40" className="text-gray-400 text-sm leading-relaxed text-center w-full">
+                      {item.description}
+                    </CardItem>
+                  </CardBody>
+                </CardContainer>
               </motion.div>
             ))}
           </motion.div>
@@ -114,20 +120,18 @@ const HowItWorks = () => {
             whileInView="visible"
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-7 gap-6 text-center mt-6"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center"
           >
             {[
               {
                 icon: AlertCircle,
                 title: "4. Receive Smart Alerts",
                 description: "Get instant notifications through your preferred channels (email, SMS, Slack, webhooks) when issues arise, with intelligent diagnostic information.",
-                colSpan: "md:col-span-3"
               },
               {
                 icon: Shield,
                 title: "5. Resolve & Improve",
                 description: "Use our detailed reports and suggestions to troubleshoot issues and continuously optimize your website's performance and reliability.",
-                colSpan: "md:col-span-4"
               }
             ].map((item, index) => (
               <motion.div
@@ -137,16 +141,21 @@ const HowItWorks = () => {
                 whileInView="visible"
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 + 0.5 }}
-                whileHover={{ scale: 1.02 }}
-                className={`relative group ${item.colSpan}`}
+                className="relative group h-full"
               >
-                <div className="bg-[#151524] p-6 rounded-2xl hover:bg-[#1A1A2E] transition-all duration-300 border border-gray-800">
-                  <div className="w-14 h-14 rounded-full bg-[#2D2D3D] flex items-center justify-center mx-auto mb-4">
-                    <item.icon className="text-purple-500" size={28} />
-                  </div>
-                  <h3 className="text-white text-lg font-medium mb-2">{item.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">{item.description}</p>
-                </div>
+                <CardContainer containerClassName="py-0 h-full w-full" className="inter-var w-full h-full">
+                  <CardBody className="bg-[#151524] relative group/card hover:shadow-2xl hover:shadow-purple-500/[0.2] hover:bg-[#1A1A2E] transition-all duration-300 border border-gray-800 w-full h-full rounded-2xl p-6 flex flex-col items-center">
+                    <CardItem translateZ="50" className="w-14 h-14 rounded-full bg-[#2D2D3D] flex items-center justify-center mb-4">
+                      <item.icon className="text-purple-500" size={28} />
+                    </CardItem>
+                    <CardItem translateZ="60" className="text-white text-lg font-medium mb-2 text-center w-full">
+                      {item.title}
+                    </CardItem>
+                    <CardItem as="p" translateZ="40" className="text-gray-400 text-sm leading-relaxed text-center w-full">
+                      {item.description}
+                    </CardItem>
+                  </CardBody>
+                </CardContainer>
               </motion.div>
             ))}
           </motion.div>

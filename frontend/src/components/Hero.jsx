@@ -31,19 +31,8 @@ export default function Hero() {
   );
 
   return (
-    <div className="bg-gradient-to-r from-[#0A0F1F] via-[#1A103C] to-[#240A45] relative flex items-center justify-center min-h-screen overflow-hidden">
-      {/* Grid Background */}
-      <div className="absolute inset-0">
-        <div className="w-full h-full grid grid-cols-[repeat(auto-fill,minmax(40px,1fr))] auto-rows-[40px] opacity-30">
-          {Array.from({ length: gridItems }).map((_, i) => (
-            <div
-              key={i}
-              className="border-[0.5px] border-gray-500/20"
-              style={{ aspectRatio: '1/1' }}
-            />
-          ))}
-        </div>
-      </div>
+    <div className="relative flex items-center justify-center min-h-screen overflow-hidden">
+      {/* Grid Background Removed to show global ripple */}
       
       {/* Gradient Effects */}
       <div className="absolute inset-0 pointer-events-none">
