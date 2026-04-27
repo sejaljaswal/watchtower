@@ -64,8 +64,8 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed left-1/2 transform -translate-x-1/2 z-50 transition-all duration-500 ease-in-out rounded-full border border-white/[0.1] ${isScrolled
-        ? "top-6 bg-black/5 backdrop-blur-sm py-2 w-[80%] max-w-4xl shadow-2xl hover:bg-black/80 hover:backdrop-blur-lg hover:py-4 hover:w-[90%] hover:max-w-6xl hover:shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-        : "top-4 bg-black/20 backdrop-blur-md py-4 w-[90%] max-w-6xl shadow-lg"
+        ? "top-6 bg-black/5 backdrop-blur-sm py-1.5 w-[80%] max-w-4xl shadow-2xl hover:bg-black/80 hover:backdrop-blur-lg hover:py-3 hover:w-[90%] hover:max-w-6xl hover:shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+        : "top-4 bg-black/20 backdrop-blur-md py-3 w-[90%] max-w-6xl shadow-lg"
       }`}>
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
