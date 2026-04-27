@@ -1,3 +1,4 @@
+// Trigger HMR
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
