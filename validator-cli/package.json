@@ -4,7 +4,7 @@
   "description": "A decentralized uptime validator CLI",
   "main": "index.js",
   "bin": {
-    "validator-cli": "bin/index.js"
+    "aksh-validator-cli": "bin/index.js"
   },
   "scripts": {
     "test": "node test/test-cli.js",
