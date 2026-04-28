@@ -269,52 +269,62 @@ const SignupValidator = () => {
                   <label className="block text-gray-300 mb-2 text-sm">
                     Generate Your Key Pair
                   </label>
-                  <div className="flex space-x-4">
-                    <div className="relative w-1/2">
-                      <input
-                        type="text"
-                        value={keyPair ? keyPair.publicKey : ""}
-                        readOnly
-                        className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-white"
-                        placeholder="Public Key"
-                      />
-                      <div
-                        onClick={() =>
-                          handleCopy(keyPair ? keyPair.publicKey : "")
-                        }
-                        className="absolute right-2 top-2 flex items-center text-purple-600 cursor-pointer"
-                      >
-                        <Copy className="mr-1" />
-                        <span>Copy</span>
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Public Key Box */}
+                    <div className="relative flex-1">
+                      <label className="block text-xs text-purple-400 mb-1 font-medium">Public Key</label>
+                      <div className="relative">
+                        <textarea
+                          readOnly
+                          rows={3}
+                          value={keyPair ? keyPair.publicKey : ""}
+                          placeholder="Click 'Generate Key Pair' below"
+                          className="w-full bg-black/40 border border-white/10 rounded-lg p-3 pr-16 text-white text-xs font-mono resize-none break-all leading-relaxed focus:outline-none focus:border-purple-500/50"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(keyPair ? keyPair.publicKey : "")}
+                          className="absolute top-2 right-2 flex items-center gap-1 text-purple-400 hover:text-purple-300 bg-black/50 rounded px-1.5 py-0.5 text-xs transition-colors"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </button>
                       </div>
                     </div>
-                    <div className="relative w-1/2">
-                      <input
-                        type="text"
-                        value={keyPair ? keyPair.privateKey : ""}
-                        readOnly
-                        className="w-full bg-black/30 border border-white/10 rounded-lg p-3 text-white"
-                        placeholder="Private Key"
-                      />
-                      <div
-                        onClick={() =>
-                          handleCopy(keyPair ? keyPair.privateKey : "")
-                        }
-                        className="absolute right-2 top-2 flex items-center text-purple-600 cursor-pointer"
-                      >
-                        <Copy className="mr-1" />
-                        <span>Copy</span>
+
+                    {/* Private Key Box */}
+                    <div className="relative flex-1">
+                      <label className="block text-xs text-rose-400 mb-1 font-medium">Private Key</label>
+                      <div className="relative">
+                        <textarea
+                          readOnly
+                          rows={3}
+                          value={keyPair ? keyPair.privateKey : ""}
+                          placeholder="Keep this secret — never share it"
+                          className="w-full bg-black/40 border border-rose-500/20 rounded-lg p-3 pr-16 text-white text-xs font-mono resize-none break-all leading-relaxed focus:outline-none focus:border-rose-500/50"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(keyPair ? keyPair.privateKey : "")}
+                          className="absolute top-2 right-2 flex items-center gap-1 text-rose-400 hover:text-rose-300 bg-black/50 rounded px-1.5 py-0.5 text-xs transition-colors"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <p className="text-red-500 text-xs mt-2">
-                    Never share your private key with anyone.
+
+                  <p className="text-rose-400 text-xs mt-2 flex items-center gap-1">
+                    ⚠ Never share your private key with anyone. Download it after registering.
                   </p>
                   <button
                     type="button"
                     onClick={handleGenerateKeyPair}
-                    className="mt-2 bg-purple-600 text-white py-2 px-4 rounded-lg transition-colors duration-300"
+                    className="mt-3 bg-purple-600 hover:bg-purple-700 text-white py-2 px-5 rounded-lg transition-colors duration-300 text-sm font-medium flex items-center gap-2"
                   >
+                    <KeyRound className="w-4 h-4" />
                     Generate Key Pair
                   </button>
                 </div>

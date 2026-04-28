@@ -211,6 +211,10 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "WatchTower Notary is working", status: "ok" });
+});
+
 // ───────────── START SERVER ─────────────
 
 app.listen(NOTARY_PORT, () => {

@@ -25,18 +25,18 @@ const ValidatorDashboard = () => {
   if (!token) {
     navigate("/signin-validator");
   }
-  const [isSignedIn, setIsSignedIn] = useState(true); // For demo purposes
+  const [isSignedIn, setIsSignedIn] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [userName, setUserName] = useState("Validator");
-  const [email, setEmail] = useState("validator@example.com");
-  const [publicKey, setPublicKey] = useState("0x1234567890abcdef"); // Mock public key
-  const [ipAddress, setIpAddress] = useState("192.168.1.1"); // Mock IP address
-  const [location, setLocation] = useState("Delhi, India"); // Mock location
-  const [averagePayout, setAveragePayout] = useState("0.01 SOL"); // Mock average payout
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [publicKey, setPublicKey] = useState("");
+  const [ipAddress, setIpAddress] = useState("");
+  const [location, setLocation] = useState("");
+  const [averagePayout, setAveragePayout] = useState("0");
   const [withdrawing, setWithDrawing] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [trustScore, setTrustScore] = useState(50);
+  const [trustScore, setTrustScore] = useState(0);
   const [totalChecks, setTotalChecks] = useState(0);
   const [successfulVerifications, setSuccessfulVerifications] = useState(0);
   const [isAdmitted, setIsAdmitted] = useState(false);
@@ -44,28 +44,28 @@ const ValidatorDashboard = () => {
   const [blockchainLogs, setBlockchainLogs] = useState([]);
   const [activeChainTab, setActiveChainTab] = useState("all");
 
-  const [mockRecentActivity, setMockRecentActivity] = useState([
-    {
-      id: 1,
-      type: "Validation",
-      status: "Good",
-      time: "5 minutes ago",
-      latency: 100,
-    },
-  ]);
+  const [mockRecentActivity, setMockRecentActivity] = useState([]);
   const [mockStats, setMockStats] = useState({
-    totalValidator: 1248,
-    uptime: "2 hours",
-    rewards: "0.025 SOL",
+    totalValidator: 0,
+    uptime: "—",
+    rewards: "0",
     status: "Offline",
   });
 
-  // WebSocket for Real-time Updates
+  // Keep a ref so the WS onmessage can always read the latest validatorId
+  // without needing to tear down and recreate the socket every time it's set.
+  const validatorIdRef = useRef(null);
+  useEffect(() => { validatorIdRef.current = validatorId; }, [validatorId]);
+
+  // WebSocket for Real-time Updates — connect once, stays alive
   useEffect(() => {
     if (!HUB_WS_URL) return;
 
+    let ws;
+    let retryTimer;
+
     const connectWS = () => {
-      const ws = new WebSocket(HUB_WS_URL);
+      ws = new WebSocket(HUB_WS_URL);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -76,12 +76,12 @@ const ValidatorDashboard = () => {
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          
+          const myId = validatorIdRef.current; // always up-to-date
+
           if (message.type === 'validator-stats-update') {
             const { validatorId: updateId, trustScore: newTrust, pendingPayouts, totalChecks: newChecks } = message.data;
-            
-            // Only update if it's our validator
-            if (updateId === validatorId) {
+            // Accept the update if it matches, or if we don't know our id yet skip
+            if (!myId || updateId === myId) {
               if (newTrust !== undefined) setTrustScore(newTrust);
               if (newChecks !== undefined) setTotalChecks(newChecks);
               if (pendingPayouts !== undefined) {
@@ -91,23 +91,22 @@ const ValidatorDashboard = () => {
           }
 
           if (message.type === 'event-logged') {
-            const { actorId, eventType, message: msgText, category, timestamp, metadata } = message.data;
-            
+            const { actorId, eventType, category, timestamp, metadata } = message.data;
+            const isOurs = !myId || actorId === myId;
+
             // Handle blockchain logs
-            if (eventType.startsWith('BLOCKCHAIN_') || eventType.includes('PAYOUT')) {
-              if (actorId === validatorId) {
-                const newLog = {
-                  _id: Date.now().toString(),
-                  eventType,
-                  timestamp,
-                  metadata
-                };
-                setBlockchainLogs(prev => [newLog, ...prev.slice(0, 49)]);
-              }
+            if (isOurs && (eventType.startsWith('BLOCKCHAIN_') || eventType.includes('PAYOUT'))) {
+              const newLog = {
+                _id: Date.now().toString(),
+                eventType,
+                timestamp,
+                metadata
+              };
+              setBlockchainLogs(prev => [newLog, ...prev.slice(0, 49)]);
             }
 
             // Handle recent validation activity
-            if (category === 'VALIDATOR' && actorId === validatorId) {
+            if (isOurs && category === 'VALIDATOR') {
               const newActivity = {
                 id: Date.now(),
                 type: "Validation",
@@ -120,7 +119,7 @@ const ValidatorDashboard = () => {
           }
 
           if (message.type === 'network-stats-update') {
-             setMockStats(prev => ({ ...prev, totalValidator: message.data.activeValidators }));
+            setMockStats(prev => ({ ...prev, totalValidator: message.data.activeValidators }));
           }
 
         } catch (err) {
@@ -130,13 +129,21 @@ const ValidatorDashboard = () => {
 
       ws.onclose = () => {
         console.log("[WS] Disconnected. Retrying in 3s...");
-        setTimeout(connectWS, 3000);
+        retryTimer = setTimeout(connectWS, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("[WS] Error:", err.message);
+        ws.close();
       };
     };
 
     connectWS();
-    return () => wsRef.current?.close();
-  }, [validatorId]);
+    return () => {
+      clearTimeout(retryTimer);
+      wsRef.current?.close();
+    };
+  }, []); // run once only — validatorIdRef keeps the id fresh
 
   // Start Validating
   useEffect(() => {
@@ -208,18 +215,11 @@ const ValidatorDashboard = () => {
           localStorage.removeItem("token");
           navigate("/signin-validator");
         }
+      } finally {
+        setIsLoaded(true);
       }
     };
     fetchValidatorDetails();
-  }, []);
-
-  // Simulate loading and auth check
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoaded(true);
-    }, 800);
-
-    return () => clearTimeout(timer);
   }, []);
 
   const handleSignOut = () => {

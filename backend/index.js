@@ -33,6 +33,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "WatchTower API is working", status: "ok" });
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 const RPC_URL = process.env.RPC_URL;
 const ADMIN_PUBLIC_KEY = process.env.ADMIN_PUBLIC_KEY;

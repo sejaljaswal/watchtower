@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Plus, Search, Filter, BarChart, AlertCircle, Bell, Settings, ArrowRight, Clock, User, Cpu, X, Trash2, Power } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import { Plus, Search, Filter, BarChart, AlertCircle, Bell, Settings, ArrowRight, Clock, User, Cpu, X, Trash2, Power, Network } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import { NoiseBackground } from "@/components/ui/noise-background";

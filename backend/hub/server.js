@@ -1,6 +1,7 @@
 import { configDotenv } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createServer } from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,11 +56,22 @@ const websiteStates = {}; // Tracks the current state of monitored websites
 const COST_PER_VALIDATION = 100; // in lamports
 const HUB_PORT = process.env.HUB_PORT || 8081;
 
-// Per-validator, per-website last known status — used to detect status changes
-// Key: `${validatorId}:${websiteId}` → "Good" | "Bad"
-const validatorWebsiteStatus = {};
-const wss = new WebSocketServer({ port: HUB_PORT });
-console.log(`[HUB] WebSocket server is listening on port ${HUB_PORT}`);
+// Create HTTP server for health checks
+const server = createServer((req, res) => {
+    if (req.url === '/') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: "WatchTower Hub is working", status: "ok" }));
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+});
+
+const wss = new WebSocketServer({ server });
+
+server.listen(HUB_PORT, () => {
+    console.log(`[HUB] Server (HTTP+WS) is listening on port ${HUB_PORT}`);
+});
 
 // Consensus configuration
 const HIGH_TRUST_THRESHOLD = 70;   // Minimum trustScore to be considered "high-trust"
@@ -85,6 +97,12 @@ const senderEmail = process.env.EMAIL_NODEMAILER;
 console.log("Websocket server")
 console.log(`[EMAIL] PASS_NODEMAILER loaded: ${pass ? `yes (${pass.length} chars)` : "no"}`);
 
+const logActiveValidators = () => {
+    if (!availableValidators.length) {
+        console.log("[ACTIVE VALIDATORS] None connected");
+        broadcastToDashboards({ type: 'network-stats-update', data: { activeValidators: 0 } });
+        return;
+    }
     const ids = availableValidators.map((v) => `${v.validatorId}(${v.location || 'unknown'})`);
     console.log(`[ACTIVE VALIDATORS] ${ids.length} -> ${ids.join(", ")}`);
 
