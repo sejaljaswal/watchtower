@@ -238,7 +238,8 @@ app.post("/getPayout", authenticateValidator, async (req, res) => {
       });
     }
 
-    const connection = new Connection(process.env.RPC_URL || "https://api.devnet.solana.com");
+    // Use the fallback public RPC specifically for payouts to avoid Alchemy's missing signatureSubscribe WS method
+    const connection = new Connection(process.env.FALLBACK_RPC_URL || "https://api.devnet.solana.com", "confirmed");
 
     const memoProgramId = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
     const memoText = `WatchTower Validator Payout: ${pendingPayouts} lamports | TS: ${Date.now()}`;
