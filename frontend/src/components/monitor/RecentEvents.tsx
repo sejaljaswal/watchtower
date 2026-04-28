@@ -115,6 +115,12 @@ const RecentEvents: React.FC<RecentEventsProps> = ({ events }) => {
                 {event.metadata?.reportedLocation && (
                   <p className="text-xs text-gray-500">Location: {event.metadata.reportedLocation}</p>
                 )}
+                {event.metadata?.reason && (
+                  <div className="mt-2 p-2 bg-gray-800/80 rounded text-xs font-mono text-gray-400 overflow-x-auto border border-gray-700 border-l-2 border-l-red-500">
+                    <span className="text-gray-500 font-sans text-[10px] uppercase tracking-wider block mb-1">Details / Reason</span>
+                    {event.metadata.reason}
+                  </div>
+                )}
               </div>
             ))}
           </div>

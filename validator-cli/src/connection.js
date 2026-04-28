@@ -16,6 +16,8 @@ let isValidating = true;
 let pendingPayouts = 0;
 let location = "Unknown";
 let ipAddress = "Unknown";
+let latitude = null;
+let longitude = null;
 let lastPingTime = null;
 let reconnectDelay = 2000; // Start with 2 seconds backoff
 
@@ -53,10 +55,11 @@ const measureAccurateLatency = async (url) => {
 
     return {
       time: tcpLatency || statusCheck.time,
-      status: statusCheck.status
+      status: statusCheck.status,
+      details: statusCheck.details
     };
   } catch (error) {
-    return { time: 0, status: 0 };
+    return { time: 0, status: 0, details: error.message };
   }
 };
 
@@ -113,9 +116,21 @@ const getStatusCode = (url) => {
         maxRedirects: 5
       });
       const time = Date.now() - startTime;
-      resolve({ time, status: response.status });
+      
+      let details = "";
+      if (response.status >= 400) {
+        details = `HTTP ${response.status}: ${response.statusText || 'Error'}`;
+        if (response.data) {
+          const dataStr = typeof response.data === 'string' 
+            ? response.data 
+            : JSON.stringify(response.data);
+          details += ` - ${dataStr.substring(0, 200).replace(/<[^>]*>?/gm, '')}`; // Strip HTML tags and limit
+        }
+      }
+      
+      resolve({ time, status: response.status, details });
     } catch (error) {
-      resolve({ time: Date.now() - startTime, status: 0 });
+      resolve({ time: Date.now() - startTime, status: 0, details: error.message });
     }
   });
 };
@@ -161,6 +176,12 @@ const connectWebsocket = async (privateKeyBase64, hubServer, spinner = null) => 
       const ipResponse = await axios.get("https://ipinfo.io/json");
       ipAddress = ipResponse.data.ip || "Unknown";
       location = `${ipResponse.data.city}, ${ipResponse.data.region}, ${ipResponse.data.country}`;
+
+      if (ipResponse.data.loc) {
+        const [lat, lng] = ipResponse.data.loc.split(',');
+        latitude = parseFloat(lat);
+        longitude = parseFloat(lng);
+      }
 
       // Display IP address with a clean box design
       console.log(chalk.cyan('\n ┌─────────────────────────────────────┐'));
@@ -222,6 +243,8 @@ const connectWebsocket = async (privateKeyBase64, hubServer, spinner = null) => 
             publicKey: publicKeyBase64,
             signedMessage,
             location,
+            latitude,
+            longitude,
           },
         })
       );
@@ -299,10 +322,13 @@ const connectWebsocket = async (privateKeyBase64, hubServer, spinner = null) => 
                   data: {
                     callbackId,
                     status: "Bad",
+                    reason: pingResult.details || `HTTP ${responseStatus}`,
                     latency: 0,
                     validatorId,
                     signedMessage: signature,
                     location: locationInfo,
+                    latitude,
+                    longitude,
                     ipAddress,
                   },
                 })
@@ -319,6 +345,8 @@ const connectWebsocket = async (privateKeyBase64, hubServer, spinner = null) => 
                     validatorId,
                     signedMessage: signature,
                     location,
+                    latitude,
+                    longitude,
                     ipAddress,
                   },
                 })
@@ -347,10 +375,13 @@ const connectWebsocket = async (privateKeyBase64, hubServer, spinner = null) => 
                 data: {
                   callbackId,
                   status: "Bad",
+                  reason: error.message,
                   latency: 0,
                   validatorId,
                   signedMessage: signature,
                   location: locationInfo,
+                  latitude,
+                  longitude,
                   ipAddress,
                 },
               })

@@ -99,12 +99,24 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-async function sendEmail(userEmail, websiteName, websiteUrl, location) {
+async function sendEmail(userEmail, websiteName, websiteUrl, location, reason) {
     const mailOptions = {
         from: senderEmail,
         to: userEmail,
-        subject: "Website Down Notification",
-        html: `Your website ${websiteName}, ${websiteUrl} is down, Location : ${location}`,
+        subject: `WatchTower Alert: ${websiteName} is DOWN`,
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ff4d4d; border-radius: 10px; background-color: #fff5f5;">
+                <h2 style="color: #d9534f;">⚠️ Website Down Notification</h2>
+                <p>Hello,</p>
+                <p>Your website <strong>${websiteName}</strong> (<a href="${websiteUrl}">${websiteUrl}</a>) is currently <strong>DOWN</strong>.</p>
+                <p><strong>Reported From:</strong> ${location}</p>
+                <p><strong>Reason/Details:</strong></p>
+                <pre style="background: #f8f9fa; padding: 10px; border-left: 5px solid #d9534f; overflow-x: auto;">${reason || 'No detailed reason provided'}</pre>
+                <p>We will continue to monitor the site and notify you once it recovers.</p>
+                <hr>
+                <p style="font-size: 0.8em; color: #666;">This is an automated message from WatchTower Monitoring System.</p>
+            </div>
+        `,
     }
     console.log("[EMAIL] Preparing to send", { ...mailOptions });
     try {
@@ -158,7 +170,7 @@ wss.on('connection', async (ws) => {
         logActiveValidators();
     });
 });
-async function signupHandler(ws, { ip, publicKey, signedMessage, callbackId, location }) {
+async function signupHandler(ws, { ip, publicKey, signedMessage, callbackId, location, latitude, longitude }) {
     console.log(`[DEBUG] signupHandler called for publicKey: ${publicKey.substring(0, 10)}...`);
     
     // Get the REAL physical connection IP
@@ -227,6 +239,8 @@ async function signupHandler(ws, { ip, publicKey, signedMessage, callbackId, loc
             socket: ws,
             publicKey: validatorDb.publicKey,
             location: finalLocation,
+            latitude: validatorDb.latitude || latitude || null,
+            longitude: validatorDb.longitude || longitude || null,
             trustScore: validatorDb.trustScore || 50,
             isAdmitted: validatorDb.isAdmitted || false,
             trialStartedAt: validatorDb.trialStartedAt || new Date(),
@@ -239,7 +253,7 @@ async function signupHandler(ws, { ip, publicKey, signedMessage, callbackId, loc
             eventType: 'VALIDATOR_CONNECTED',
             actorId: validatorDb._id.toString(),
             message: `Validator connected to Hub`,
-            metadata: { location: validatorDb.location || location }
+            metadata: { location: validatorDb.location || location, latitude, longitude }
         });
         
         logActiveValidators();
@@ -273,48 +287,53 @@ async function verifyMessage(message, publicKey, signature) {
 /**
  * Handle the "Down" report finalization after high-trust verification.
  */
-async function handleDownReport(website, location) {
-    const id = await Website.findById(website._id).select("userId");
-    const userId = id.userId;
-    console.log(`[EMAIL] Website ${website._id} userId: ${userId}`);
-    const mail = await User.findOne({ userId });
-    if (!mail) {
-        console.log(`[EMAIL] No user found for userId: ${userId}`);
-        return;
-    }
-    const userEmail = mail.email;
-    console.log(`[EMAIL] Found user email: ${userEmail}`);
-    const now = new Date();
-    const lastEmailSent = website.lastEmailSent || new Date(0);
-    console.log(`[EMAIL] Last sent: ${lastEmailSent.toISOString()}`);
-    console.log(`[EMAIL] Cooldown ms: ${now - lastEmailSent}`);
-    if ((now - lastEmailSent) >= 60 * 1000) {
-        console.log("[EMAIL] Sending down notification...");
-        await sendEmail(userEmail, website.websiteName, website.url, location);
-        await Website.findByIdAndUpdate(website._id, {
-            lastEmailSent: now
-        });
-    } else {
-        console.log("[EMAIL] Skipped due to cooldown");
-    }
+async function handleDownReport(website, location, reason, latitude, longitude) {
+    const websiteIdStr = website._id.toString();
+    const isNewFailure = websiteStates[websiteIdStr] !== "Bad";
 
+    // Always log the technical failure details to the database for historical tracking
     await DownLog.create({
         websiteId: website._id,
         location: location,
-    });
-    
-    await logEvent({
-        category: 'WEBSITE',
-        eventType: 'STATUS_CHANGED_DOWN',
-        targetId: website._id.toString(),
-        severity: 'WARN',
-        message: `Website went DOWN: ${website.url}`,
-        metadata: { reportedLocation: location }
+        reason: reason || "Unknown failure"
     });
 
-    // Phase 3: Event-Driven Blockchain Logging (Good -> Bad)
-    websiteStates[website._id.toString()] = "Bad";
-    await logStatusChangeToChain(website._id.toString(), website.url, "Good", "Bad");
+    // Only trigger notifications and "Recent Events" if this is a fresh state change
+    if (isNewFailure) {
+        console.log(`[CONSENSUS] 🔴 STATE CHANGE: ${website.url} is now DOWN`);
+        websiteStates[websiteIdStr] = "Bad";
+
+        const id = await Website.findById(website._id).select("userId");
+        const userId = id.userId;
+        const mail = await User.findOne({ userId });
+        
+        if (mail) {
+            const userEmail = mail.email;
+            const now = new Date();
+            const lastEmailSent = website.lastEmailSent || new Date(0);
+
+            // Keep the 1-minute cooldown even for state changes to avoid spamming if a site flickers
+            if ((now - lastEmailSent) >= 60 * 1000) {
+                console.log("[EMAIL] Sending down notification...");
+                await sendEmail(userEmail, website.websiteName, website.url, location, reason);
+                await Website.findByIdAndUpdate(website._id, { lastEmailSent: now });
+            }
+        }
+
+        await logEvent({
+            category: 'WEBSITE',
+            eventType: 'STATUS_CHANGED_DOWN',
+            targetId: websiteIdStr,
+            severity: 'WARN',
+            message: `Website went DOWN: ${website.url}`,
+            metadata: { reportedLocation: location, reason, latitude, longitude }
+        });
+
+        // Phase 3: Event-Driven Blockchain Logging (Good -> Bad)
+        await logStatusChangeToChain(websiteIdStr, website.url, "Good", "Bad");
+    } else {
+        console.log(`[CONSENSUS] ℹ️ Ongoing failure for ${website.url} (already logged)`);
+    }
 }
 
 /**
@@ -439,7 +458,7 @@ setInterval(async () => {
 
             CALLBACKS[callbackId] = async (data) => {
                 if (data.type === 'validate') {
-                    const { validatorId, status, latency, signedMessage, location } = data.data;
+                    const { validatorId, status, latency, signedMessage, location, reason, latitude, longitude } = data.data;
                     console.log(`Latency : ${latency}`);
                     console.log(`Status : ${status}`);
                     console.log(`Location :  ${location}`);
@@ -506,7 +525,7 @@ setInterval(async () => {
                                 targetId: website._id.toString(),
                                 message: `DOWN status confirmed by high-trust validator for ${website.url}`
                             });
-                            await handleDownReport(website, location);
+                            await handleDownReport(website, location, reason, latitude, longitude);
 
                             // Reward the original reporter for honest reporting
                             await updateTrustScore(validatorId, TRUST_REWARD);
@@ -530,7 +549,7 @@ setInterval(async () => {
                         } else {
                             // No high-trust validator available or timed out — accept the original report as fallback
                             console.log(`[CONSENSUS] ⚠️ No high-trust verification available. Accepting original report for ${website.url}`);
-                            await handleDownReport(website, location);
+                            await handleDownReport(website, location, reason);
                         }
                     } else {
                         // "Good" status — run random notary spot-check

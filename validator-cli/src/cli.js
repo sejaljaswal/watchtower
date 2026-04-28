@@ -232,16 +232,24 @@ program
 
       let ip = "Unknown";
       let location = options.location || "Unknown";
+      let latitude = null;
+      let longitude = null;
+
       if (!options.location) {
         try {
           const ipResponse = await axios.get("https://ipinfo.io/json");
           ip = ipResponse.data.ip || "Unknown";
           location = `${ipResponse.data.city}, ${ipResponse.data.region}, ${ipResponse.data.country}`;
+          
+          if (ipResponse.data.loc) {
+            const [lat, lng] = ipResponse.data.loc.split(',');
+            latitude = parseFloat(lat);
+            longitude = parseFloat(lng);
+          }
         } catch (error) {
           logger.warn(`IP lookup failed: ${error.message}`);
         }
       }
-
 
       const payload = {
         name,
@@ -251,6 +259,8 @@ program
         publicKey: publicKeyBase64,
         location,
         ip,
+        latitude,
+        longitude
       };
 
 

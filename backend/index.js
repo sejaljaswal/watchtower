@@ -65,7 +65,7 @@ app.post("/user", async (req, res) => {
 // Validator Creation
 app.post("/validator", async (req, res) => {
   try {
-    const { name, email, payoutPublicKey, publicKey, location, ip, password } =
+    const { name, email, payoutPublicKey, publicKey, location, ip, password, latitude, longitude } =
       req.body;
     const publicKeyDB = await Validator.findOne({
       payoutPublicKey: payoutPublicKey,
@@ -96,6 +96,8 @@ app.post("/validator", async (req, res) => {
       publicKey: publicKey,
       location: location,
       ip: ip,
+      latitude: latitude,
+      longitude: longitude,
       payoutPublicKey: payoutPublicKey,
       password: hashedPassword,
     });
