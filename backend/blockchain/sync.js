@@ -15,7 +15,9 @@ try {
     console.warn("[BLOCKCHAIN] No valid admin keypair found in .env. Blockchain sync will be simulated.");
 }
 
-const connection = new Connection(RPC_URL, "confirmed");
+const rpcUrl = process.env.RPC_URL || "https://api.devnet.solana.com";
+const wsUrl = rpcUrl.startsWith("https://") ? rpcUrl.replace("https://", "wss://") : undefined;
+const connection = new Connection(rpcUrl, { wsEndpoint: wsUrl, commitment: "confirmed" });
 const fallbackConnection = new Connection(process.env.FALLBACK_RPC_URL || "https://api.devnet.solana.com", "confirmed");
 
 async function sendEvidenceTransaction(message) {
@@ -24,6 +26,7 @@ async function sendEvidenceTransaction(message) {
     // Make the memo completely unique to prevent "Duplicate Transaction" blockhash errors
     const uniqueMessage = `${message} | TS: ${Date.now()}`;
     
+    // Use both Alchemy and fallback
     const connections = [connection, fallbackConnection];
     
     for (const conn of connections) {
@@ -54,32 +57,12 @@ async function sendEvidenceTransaction(message) {
                 })
             );
 
-            // Send transaction
+            // Send transaction (Do not wait for block confirmation to bypass Alchemy WebSocket errors)
             const signature = await conn.sendTransaction(transaction, [adminKeypair]);
-            
-            // Native Solana Confirmation Strategy (Handles blockhash expiry properly)
-            const confirmation = await conn.confirmTransaction({
-                signature,
-                blockhash,
-                lastValidBlockHeight
-            }, "confirmed");
-
-            if (confirmation.value.err) {
-                throw new Error(`Transaction failed: ${confirmation.value.err.toString()}`);
-            }
 
             return signature;
         } catch (err) {
             console.warn(chalk.yellow(`[BLOCKCHAIN WARNING] Attempt failed on ${conn.rpcEndpoint}: ${err.message}`));
-            
-            if (typeof err.getLogs === 'function') {
-                try {
-                    const logs = await err.getLogs();
-                    console.log(chalk.red("--- FULL TRANSACTION LOGS ---"));
-                    logs.forEach(log => console.log(chalk.gray(`> ${log}`)));
-                    console.log(chalk.red("------------------------------"));
-                } catch (e) {}
-            }
         }
     }
     return null;

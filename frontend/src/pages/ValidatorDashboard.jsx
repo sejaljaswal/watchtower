@@ -39,6 +39,7 @@ const ValidatorDashboard = () => {
   const [isAdmitted, setIsAdmitted] = useState(false);
   const [trialStartedAt, setTrialStartedAt] = useState(null);
   const [blockchainLogs, setBlockchainLogs] = useState([]);
+  const [activeChainTab, setActiveChainTab] = useState("all");
 
   const [mockRecentActivity, setMockRecentActivity] = useState([
     {
@@ -465,9 +466,49 @@ const ValidatorDashboard = () => {
                 </span>
               </div>
 
+              {/* Subtabs for On-Chain History */}
+              <div className="flex space-x-2 mb-4 overflow-x-auto pb-2 custom-scrollbar">
+                <button 
+                  onClick={() => setActiveChainTab("all")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeChainTab === "all" ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-transparent"}`}
+                >
+                  All Logs
+                </button>
+                <button 
+                  onClick={() => setActiveChainTab("hourly")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeChainTab === "hourly" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-transparent"}`}
+                >
+                  Hourly Snapshots
+                </button>
+                <button 
+                  onClick={() => setActiveChainTab("reputation")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeChainTab === "reputation" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-transparent"}`}
+                >
+                  Reputation Syncs
+                </button>
+                <button 
+                  onClick={() => setActiveChainTab("payout")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${activeChainTab === "payout" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-transparent"}`}
+                >
+                  Payouts
+                </button>
+              </div>
+
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {blockchainLogs && blockchainLogs.length > 0 ? (
-                  blockchainLogs.map((log) => (
+                {blockchainLogs && blockchainLogs.filter(log => {
+                  if (activeChainTab === "all") return true;
+                  if (activeChainTab === "hourly") return log.eventType === 'BLOCKCHAIN_VALIDATOR_HOURLY';
+                  if (activeChainTab === "reputation") return log.eventType === 'BLOCKCHAIN_SYNC';
+                  if (activeChainTab === "payout") return log.eventType === 'PAYOUT_SUCCESS';
+                  return true;
+                }).length > 0 ? (
+                  blockchainLogs.filter(log => {
+                    if (activeChainTab === "all") return true;
+                    if (activeChainTab === "hourly") return log.eventType === 'BLOCKCHAIN_VALIDATOR_HOURLY';
+                    if (activeChainTab === "reputation") return log.eventType === 'BLOCKCHAIN_SYNC';
+                    if (activeChainTab === "payout") return log.eventType === 'PAYOUT_SUCCESS';
+                    return true;
+                  }).map((log) => (
                     <div
                       key={log._id}
                       className="bg-white/5 p-4 rounded-lg border border-white/5 flex flex-col md:flex-row justify-between md:items-center gap-3 hover:border-purple-500/30 transition-colors"
