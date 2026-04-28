@@ -92,7 +92,7 @@ const SignupValidator = () => {
       const ipResponse = await axios("https://ipinfo.io/json");
       const userIP = ipResponse.data.ip;
       console.log(`User I.P. : ${userIP}`);
-      const response = await axios.post("http://localhost:3000/validator", {
+      const response = await axios.post("https://watchtower-backend-0zc7.onrender.com/validator", {
         name,
         email,
         password,

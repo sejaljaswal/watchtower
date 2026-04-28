@@ -62,7 +62,7 @@ const ValidatorDashboard = () => {
     const fetchValidatorDetails = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:3000/validator-detail", {
+        const res = await axios.get("https://watchtower-backend-0zc7.onrender.com/validator-detail", {
           headers: {
             "Authorization": token,
             "Content-Type": "application/json",
@@ -156,7 +156,7 @@ const ValidatorDashboard = () => {
       }
       const token = localStorage.getItem("token");
       console.log(token);
-      const res = await axios.post("http://localhost:3000/getPayout", {}, {
+      const res = await axios.post("https://watchtower-backend-0zc7.onrender.com/getPayout", {}, {
         headers: {
           "Authorization": token,
           "Content-Type": "application/json",

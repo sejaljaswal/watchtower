@@ -129,7 +129,7 @@ const ValidatorMap: React.FC<ValidatorMapProps> = ({
   useEffect(() => {
     const fetchValidators = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/website/${websiteId}/validators`);
+        const res = await fetch(`https://watchtower-backend-0zc7.onrender.com/website/${websiteId}/validators`);
         if (!res.ok) throw new Error("Failed to fetch validators");
         const data: ValidatorData[] = await res.json();
         if (data && data.length > 0) {
@@ -168,7 +168,7 @@ const ValidatorMap: React.FC<ValidatorMapProps> = ({
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const HUB_WS_URL = import.meta.env.VITE_HUB_WS_URL || "ws://localhost:8081";
+    const HUB_WS_URL = import.meta.env.VITE_HUB_WS_URL || "wss://hackindia-spark-7-north-region-aksh.onrender.com";
     const connect = () => {
       const ws = new WebSocket(HUB_WS_URL);
       wsRef.current = ws;

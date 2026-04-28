@@ -308,7 +308,7 @@ const AddMonitor = ({ isOpen, onClose, onAdd }: AddMonitorProps) => {
       }
 
       const userId = user.id;
-      const response = await fetch("http://localhost:3000/website", {
+      const response = await fetch("https://watchtower-backend-0zc7.onrender.com/website", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ websiteName: name, url, userId }),
@@ -414,7 +414,7 @@ const PushoverSettings = ({ isOpen, onClose }: PushoverSettingsProps) => {
       }
 
       const userId = user.id;
-      const response = await fetch("http://localhost:3000/user/pushover", {
+      const response = await fetch("https://watchtower-backend-0zc7.onrender.com/user/pushover", {
         method: "PUT",
         headers: { "Content-Type": "application/json", userId },
         body: JSON.stringify({ pushoverUserKey }),
@@ -517,7 +517,7 @@ const Dashboard = () => {
     if (!userId || !isSignedIn) return;
 
     try {
-      const response = await fetch("http://localhost:3000/dashboard-details", {
+      const response = await fetch("https://watchtower-backend-0zc7.onrender.com/dashboard-details", {
         method: "GET",
         headers: { "Content-Type": "application/json", userId },
       });
@@ -550,7 +550,7 @@ const Dashboard = () => {
       const userId = user?.id;
       if (!userId) throw new Error("User session is not ready");
 
-      const response = await fetch(`http://localhost:3000/website/${monitorId}`, {
+      const response = await fetch(`https://watchtower-backend-0zc7.onrender.com/website/${monitorId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json", userId },
       });
@@ -566,7 +566,7 @@ const Dashboard = () => {
 
   const handleToggleMonitor = async (monitorId: string) => {
     try {
-      const response = await fetch(`http://localhost:3000/website-track/${monitorId}`, {
+      const response = await fetch(`https://watchtower-backend-0zc7.onrender.com/website-track/${monitorId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
       });

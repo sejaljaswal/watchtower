@@ -75,7 +75,7 @@ const Monitor = () => {
   const fetchMonitorDetails = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/website-details/${id}`);
+      const response = await fetch(`https://watchtower-backend-0zc7.onrender.com/website-details/${id}`);
       if (!response.ok) throw new Error("Failed to fetch monitor details");
       const data = await response.json();
       

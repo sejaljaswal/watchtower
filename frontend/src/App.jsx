@@ -21,6 +21,8 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import MonitorPage from "./components/monitor/MonitorPage";
 
+import { API_BASE_URL } from './config';
+
 const App = () => {
   const location = useLocation();
   const { session } = useSession();
@@ -32,7 +34,7 @@ const App = () => {
       email: user.primaryEmailAddress.emailAddress,
       userId: user.id
     };
-    await fetch("http://localhost:3000/user", {
+    await fetch(`${API_BASE_URL}/user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

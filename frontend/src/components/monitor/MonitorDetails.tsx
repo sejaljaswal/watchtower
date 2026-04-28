@@ -23,7 +23,7 @@ const MonitorDetails = () => {
 
   const fetchMonitorData = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/website-details/${id}`);
+      const response = await fetch(`https://watchtower-backend-0zc7.onrender.com/website-details/${id}`);
       if (!response.ok) {
         console.error(`[MonitorDetails] API error: ${response.status}`);
         setLoading(false);

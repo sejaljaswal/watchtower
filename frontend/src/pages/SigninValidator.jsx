@@ -34,7 +34,7 @@ const SigninValidator = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:3000/validator-signin",{
+      const res = await axios.post("https://watchtower-backend-0zc7.onrender.com/validator-signin",{
         email : formData.email,
         password : formData.password,
       })
