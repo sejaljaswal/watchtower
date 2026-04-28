@@ -14,9 +14,12 @@ import { useNavigate } from "react-router-dom";
 import nacl from "tweetnacl";
 import nacl_util from "tweetnacl-util";
 import axios from "axios";
-import bs58 from "bs58";
+import { API_BASE_URL, HUB_WS_URL } from "../config";
+
 const ValidatorDashboard = () => {
   const navigate = useNavigate();
+  const wsRef = useRef(null);
+  const [validatorId, setValidatorId] = useState(null);
 
   const token = localStorage.getItem("token");
   if (!token) {
@@ -57,21 +60,101 @@ const ValidatorDashboard = () => {
     status: "Offline",
   });
 
+  // WebSocket for Real-time Updates
+  useEffect(() => {
+    if (!HUB_WS_URL) return;
+
+    const connectWS = () => {
+      const ws = new WebSocket(HUB_WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[WS] Connected to Hub");
+        ws.send(JSON.stringify({ type: "dashboard-connect" }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          
+          if (message.type === 'validator-stats-update') {
+            const { validatorId: updateId, trustScore: newTrust, pendingPayouts, totalChecks: newChecks } = message.data;
+            
+            // Only update if it's our validator
+            if (updateId === validatorId) {
+              if (newTrust !== undefined) setTrustScore(newTrust);
+              if (newChecks !== undefined) setTotalChecks(newChecks);
+              if (pendingPayouts !== undefined) {
+                setMockStats(prev => ({ ...prev, rewards: pendingPayouts }));
+              }
+            }
+          }
+
+          if (message.type === 'event-logged') {
+            const { actorId, eventType, message: msgText, category, timestamp, metadata } = message.data;
+            
+            // Handle blockchain logs
+            if (eventType.startsWith('BLOCKCHAIN_') || eventType.includes('PAYOUT')) {
+              if (actorId === validatorId) {
+                const newLog = {
+                  _id: Date.now().toString(),
+                  eventType,
+                  timestamp,
+                  metadata
+                };
+                setBlockchainLogs(prev => [newLog, ...prev.slice(0, 49)]);
+              }
+            }
+
+            // Handle recent validation activity
+            if (category === 'VALIDATOR' && actorId === validatorId) {
+              const newActivity = {
+                id: Date.now(),
+                type: "Validation",
+                status: metadata?.status === "Good" ? "Good" : "Bad",
+                time: "just now",
+                latency: metadata?.latency
+              };
+              setMockRecentActivity(prev => [newActivity, ...prev.slice(0, 9)]);
+            }
+          }
+
+          if (message.type === 'network-stats-update') {
+             setMockStats(prev => ({ ...prev, totalValidator: message.data.activeValidators }));
+          }
+
+        } catch (err) {
+          console.error("[WS] Error parsing message:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log("[WS] Disconnected. Retrying in 3s...");
+        setTimeout(connectWS, 3000);
+      };
+    };
+
+    connectWS();
+    return () => wsRef.current?.close();
+  }, [validatorId]);
+
   // Start Validating
   useEffect(() => {
     const fetchValidatorDetails = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("https://watchtower-backend-0zc7.onrender.com/validator-detail", {
+        const res = await axios.get(`${API_BASE_URL}/validator-detail`, {
           headers: {
             "Authorization": token,
             "Content-Type": "application/json",
           },
         });
-        const { name, location, payoutPublicKey, pendingPayouts, email,
+        const { _id, name, location, payoutPublicKey, pendingPayouts, email,
           trustScore: ts, totalChecks: tc, successfulVerifications: sv,
           isAdmitted: admitted, trialStartedAt: trialStart } =
           res.data.validator;
+        
+        setValidatorId(_id);
         const totalValidator = res.data.totalValidator;
         const averagePayout = Number(res.data.averagePayout).toFixed(2);
         let recentWeb = res.data.recentWebsites;

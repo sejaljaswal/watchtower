@@ -15,21 +15,45 @@ import nacl from 'tweetnacl';
 import nacl_util from "tweetnacl-util";
 import base58 from 'bs58';
 import { Website, Validator, WebsiteTick, DownLog, User } from '../model/model.js';
+import { logEvent } from '../utils/logger.js';
+import { syncReputationToChain, logStatusChangeToChain, logHourlySummaryToChain, logValidatorHourlyToChain } from '../blockchain/sync.js';
 import db from '../db/db.js';
 import nodemailer from "nodemailer";
 import axios from 'axios';
-import { logEvent } from '../utils/logger.js';
-import { syncReputationToChain, logStatusChangeToChain, logHourlySummaryToChain, logValidatorHourlyToChain } from '../blockchain/sync.js';
 import { verifyIPLocation } from '../utils/script.js';
+
+const dashboardClients = new Set();
+
+const broadcastToDashboards = (payload) => {
+    const message = JSON.stringify(payload);
+    dashboardClients.forEach(client => {
+        if (client.readyState === 1) { // OPEN
+            try {
+                client.send(message);
+            } catch (e) {
+                console.error('[HUB] Failed to send to dashboard client:', e.message);
+            }
+        }
+    });
+};
+
+// Wrapped logEvent to also broadcast to connected dashboards
+const hubLogEvent = async (params) => {
+    await logEvent(params);
+    broadcastToDashboards({
+        type: 'event-logged',
+        data: {
+            ...params,
+            timestamp: new Date()
+        }
+    });
+};
 
 const CALLBACKS = {};
 const availableValidators = [];
 const websiteStates = {}; // Tracks the current state of monitored websites
 const COST_PER_VALIDATION = 100; // in lamports
 const HUB_PORT = process.env.HUB_PORT || 8081;
-
-// Track frontend dashboard clients (owner browsers) separately from validators
-const dashboardClients = new Set();
 
 // Per-validator, per-website last known status — used to detect status changes
 // Key: `${validatorId}:${websiteId}` → "Good" | "Bad"
@@ -61,13 +85,16 @@ const senderEmail = process.env.EMAIL_NODEMAILER;
 console.log("Websocket server")
 console.log(`[EMAIL] PASS_NODEMAILER loaded: ${pass ? `yes (${pass.length} chars)` : "no"}`);
 
-const logActiveValidators = () => {
-    if (!availableValidators.length) {
-        console.log("[ACTIVE VALIDATORS] None connected");
-        return;
-    }
     const ids = availableValidators.map((v) => `${v.validatorId}(${v.location || 'unknown'})`);
     console.log(`[ACTIVE VALIDATORS] ${ids.length} -> ${ids.join(", ")}`);
+
+    // Broadcast total count to dashboards
+    broadcastToDashboards({
+        type: 'network-stats-update',
+        data: {
+            activeValidators: availableValidators.length
+        }
+    });
 };
 
 /**
@@ -93,6 +120,15 @@ const updateTrustScore = async (validatorId, delta) => {
     const newScore = Math.max(0, Math.min(100, validator.trustScore + delta));
     await Validator.findByIdAndUpdate(validatorId, { trustScore: newScore });
     console.log(`[TRUST] Validator ${validatorId}: ${validator.trustScore} -> ${newScore} (delta: ${delta > 0 ? '+' : ''}${delta})`);
+    
+    // Broadcast trust update to dashboards
+    broadcastToDashboards({
+        type: 'validator-stats-update',
+        data: {
+            validatorId: validatorId.toString(),
+            trustScore: newScore
+        }
+    });
 };
 
 // Send email
@@ -161,8 +197,10 @@ wss.on('connection', async (ws) => {
                 }
                 console.log("Verification completed");
             } else if (data.type === 'validate') {
-                CALLBACKS[data.data.callbackId](data);
-                delete CALLBACKS[data.data.callbackId];
+                if (CALLBACKS[data.data.callbackId]) {
+                    CALLBACKS[data.data.callbackId](data);
+                    delete CALLBACKS[data.data.callbackId];
+                }
             }
         } catch (err) {
             console.log(err);
@@ -180,7 +218,7 @@ wss.on('connection', async (ws) => {
         const index = availableValidators.findIndex(v => v.socket === ws);
         if (index !== -1) {
             const validator = availableValidators[index];
-            logEvent({
+            hubLogEvent({
                 category: 'SYSTEM',
                 eventType: 'VALIDATOR_DISCONNECTED',
                 actorId: validator.validatorId.toString(),
@@ -270,7 +308,7 @@ async function signupHandler(ws, { ip, publicKey, signedMessage, callbackId, loc
         
         console.log(`[DEBUG] Validator pushed to availableValidators. Current count: ${availableValidators.length}`);
         
-        await logEvent({
+        await hubLogEvent({
             category: 'SYSTEM',
             eventType: 'VALIDATOR_CONNECTED',
             actorId: validatorDb._id.toString(),
@@ -371,7 +409,7 @@ async function handleDownReport(website, location, reason, latitude, longitude) 
             }
         }
 
-        await logEvent({
+        await hubLogEvent({
             category: 'WEBSITE',
             eventType: 'STATUS_CHANGED_DOWN',
             targetId: websiteIdStr,
@@ -539,7 +577,7 @@ setInterval(async () => {
                             const index = availableValidators.findIndex(v => v.validatorId.toString() === validatorId.toString());
                             if (index !== -1) availableValidators[index].isAdmitted = true;
                             
-                            await logEvent({
+                            await hubLogEvent({
                                 category: 'VALIDATOR',
                                 eventType: 'TRIAL_PASSED',
                                 severity: 'AUDIT',
@@ -550,7 +588,7 @@ setInterval(async () => {
                         }
                     }
                     
-                    await logEvent({
+                    await hubLogEvent({
                         category: 'VALIDATOR',
                         eventType: 'STATUS_REPORTED',
                         severity: 'DEBUG',
@@ -569,7 +607,7 @@ setInterval(async () => {
                         if (highTrustResult === "Bad") {
                             // High-trust validator CONFIRMED the failure
                             console.log(`[CONSENSUS] ✅ DOWN status CONFIRMED by high-trust validator for ${website.url}`);
-                            await logEvent({
+                            await hubLogEvent({
                                 category: 'SYSTEM',
                                 eventType: 'CONSENSUS_AGREED',
                                 severity: 'AUDIT',
@@ -587,7 +625,7 @@ setInterval(async () => {
                         } else if (highTrustResult === "Good") {
                             // High-trust validator DISAGREED — original report was likely false
                             console.log(`[CONSENSUS] ❌ DOWN status REJECTED by high-trust validator for ${website.url}. Penalizing reporter.`);
-                            await logEvent({
+                            await hubLogEvent({
                                 category: 'SYSTEM',
                                 eventType: 'CONSENSUS_DISAGREED',
                                 severity: 'AUDIT',
@@ -613,7 +651,7 @@ setInterval(async () => {
                             if (notaryResult.notaryStatus && !notaryResult.match) {
                                 // Notary disagrees! Validator reported "Good" but site is actually down
                                 console.log(`[NOTARY] ❌ MISMATCH: Validator ${validatorId} reported Good, Notary says ${notaryResult.notaryStatus} for ${website.url}`);
-                                await logEvent({
+                                await hubLogEvent({
                                     category: 'SYSTEM',
                                     eventType: 'NOTARY_MISMATCH',
                                     severity: 'CRITICAL',
@@ -625,7 +663,7 @@ setInterval(async () => {
                             } else {
                                 // Notary agrees or is unavailable
                                 console.log(`[NOTARY] ✅ Validator ${validatorId} passed spot-check for ${website.url}`);
-                                await logEvent({
+                                await hubLogEvent({
                                     category: 'SYSTEM',
                                     eventType: 'NOTARY_PASSED',
                                     severity: 'AUDIT',
@@ -651,7 +689,7 @@ setInterval(async () => {
                             console.log(`[CONSENSUS] 🟢 RECOVERY DETECTED: ${website.url} is back online!`);
                             websiteStates[website._id.toString()] = "Good";
                             
-                            await logEvent({
+                            await hubLogEvent({
                                 category: 'WEBSITE',
                                 eventType: 'STATUS_CHANGED_UP',
                                 targetId: website._id.toString(),
@@ -703,10 +741,21 @@ setInterval(async () => {
                     }
 
                     // Always pay the validator for their work
-                    await Validator.findByIdAndUpdate(
+                    const updatedVal = await Validator.findByIdAndUpdate(
                         validatorId,
-                        { $inc: { pendingPayouts: COST_PER_VALIDATION } }
+                        { $inc: { pendingPayouts: COST_PER_VALIDATION } },
+                        { new: true }
                     );
+
+                    // Broadcast payout/check update to dashboards
+                    broadcastToDashboards({
+                        type: 'validator-stats-update',
+                        data: {
+                            validatorId: validatorId.toString(),
+                            pendingPayouts: updatedVal.pendingPayouts,
+                            totalChecks: updatedVal.totalChecks
+                        }
+                    });
                 }
             };
         });

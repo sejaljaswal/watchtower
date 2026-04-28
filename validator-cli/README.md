@@ -13,7 +13,7 @@ A decentralized uptime validator CLI for monitoring website availability.
 Install globally with npm:
 
 ```bash
-npm install -g validator-cli
+npm install -g aksh-validator-cli
 ```
 
 Or for local development:
@@ -39,12 +39,12 @@ Here's how to get up and running with the Validator CLI:
 2. **Register as a validator (CLI-only)**
 
    ```bash
-   validator-cli register
+   aksh-validator-cli register
    ```
 
 3. **Start the validator client**
    ```bash
-   validator-cli start
+   aksh-validator-cli start
    ```
 
 ## Usage
@@ -54,9 +54,9 @@ Here's how to get up and running with the Validator CLI:
 You can display help information using:
 
 ```bash
-validator-cli -help
+aksh-validator-cli -help
 # or
-validator-cli --help
+aksh-validator-cli --help
 ```
 
 ### Available Commands
@@ -68,7 +68,7 @@ validator-cli [command] [options]
 ### Generate Validator Keys
 
 ```bash
-validator-cli generate-keys
+aksh-validator-cli generate-keys
 ```
 
 This will generate a keypair for your validator in `~/.watchtower-validator`.
@@ -76,7 +76,7 @@ This will generate a keypair for your validator in `~/.watchtower-validator`.
 ### Start the Validator
 
 ```bash
-validator-cli start /path/to/privateKey.txt
+aksh-validator-cli start /path/to/privateKey.txt
 ```
 
 Start the validator using the default private key at `~/.watchtower-validator/privateKey.txt`.
@@ -84,13 +84,13 @@ Start the validator using the default private key at `~/.watchtower-validator/pr
 ### View Validator Info
 
 ```bash
-validator-cli info
+aksh-validator-cli info
 ```
 
 ### View Rewards
 
 ```bash
-validator-cli rewards
+aksh-validator-cli rewards
 ```
 
 Check your accumulated rewards from validation work.
@@ -98,7 +98,7 @@ Check your accumulated rewards from validation work.
 ### Ping a URL
 
 ```bash
-validator-cli ping https://example.com
+aksh-validator-cli ping https://example.com
 ```
 
 Manually ping a URL to check its status and response time.

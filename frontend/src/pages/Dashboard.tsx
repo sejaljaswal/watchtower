@@ -499,6 +499,8 @@ interface DeleteDialog {
   monitorName: string;
 }
 
+import { API_BASE_URL, HUB_WS_URL } from "../config";
+
 const Dashboard = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [isAddMonitorOpen, setIsAddMonitorOpen] = useState(false);
@@ -506,26 +508,77 @@ const Dashboard = () => {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [monitorsActive, setMonitorsActive] = useState(true);
+  const [activeValidators, setActiveValidators] = useState(0);
+  const wsRef = useRef<WebSocket | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>({
     isOpen: false,
     monitorId: null,
     monitorName: "",
   });
 
+  // WebSocket for real-time updates
+  useEffect(() => {
+    if (!HUB_WS_URL) return;
+
+    const connectWS = () => {
+      const ws = new WebSocket(HUB_WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[WS] Dashboard connected to Hub");
+        ws.send(JSON.stringify({ type: "dashboard-connect" }));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+
+          if (message.type === "network-stats-update") {
+            setActiveValidators(message.data.activeValidators);
+          }
+
+          if (message.type === "validator-status-update") {
+             const { websiteId, status, latency } = message.data;
+             setMonitors(prev => prev.map(m => {
+               if (m.id === websiteId) {
+                 return { ...m, response: latency, status }; // Note: You might want to update status properly
+               }
+               return m;
+             }));
+          }
+
+          if (message.type === "event-logged") {
+            // Optional: Handle live event notifications
+          }
+        } catch (err) {
+          console.error("[WS] Error parsing message:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connectWS, 3000);
+      };
+    };
+
+    connectWS();
+    return () => wsRef.current?.close();
+  }, []);
+
   const fetchDashboardDetails = async () => {
     const userId = user?.id;
     if (!userId || !isSignedIn) return;
 
     try {
-      const response = await fetch("https://watchtower-backend-0zc7.onrender.com/dashboard-details", {
+      const response = await fetch(`${API_BASE_URL}/dashboard-details`, {
         method: "GET",
         headers: { "Content-Type": "application/json", userId },
       });
 
       if (!response.ok) throw new Error("Failed to fetch dashboard details");
 
-      const data: { websites: Monitor[] } = await response.json();
+      const data: { websites: Monitor[]; totalValidator?: number } = await response.json();
       setMonitors(Array.isArray(data.websites) ? data.websites : []);
+      if (data.totalValidator !== undefined) setActiveValidators(data.totalValidator);
     } catch (error) {
       console.error("Error fetching dashboard details:", error);
     }
@@ -699,6 +752,12 @@ const Dashboard = () => {
               value={disabledCount.toString()}
               icon={<AlertCircle className="h-5 w-5" />}
               color="red"
+            />
+            <StatCard
+              title="Network Validators"
+              value={activeValidators.toString()}
+              icon={<Network className="h-5 w-5" />}
+              color="yellow"
             />
           </div>
         </div>
