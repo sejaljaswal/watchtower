@@ -1,5 +1,5 @@
 {
-  "name": "validator-cli",
+  "name": "aksh-validator-cli",
   "version": "1.0.0",
   "description": "A decentralized uptime validator CLI",
   "main": "index.js",

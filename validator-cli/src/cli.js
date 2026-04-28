@@ -307,7 +307,7 @@ program
     // Create config file if it doesn't exist
     if (!fs.existsSync(configPath)) {
       const defaultConfig = {
-        hubServer: "ws://localhost:8081",
+        hubServer: "wss://hackindia-spark-7-north-region-aksh.onrender.com",
       };
 
       try {
