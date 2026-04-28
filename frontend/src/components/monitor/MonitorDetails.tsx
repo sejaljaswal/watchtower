@@ -11,6 +11,7 @@ import MonitorStats from "./MonitorStats";
 import RecentEvents from "./RecentEvents";
 import MonitorHeader from "./MonitorHeader";
 import PerformanceMetrics from "./PerformanceMetrics";
+import ValidatorMap from "./ValidatorMap";
 import { useAuth } from "@clerk/clerk-react";
 
 const MonitorDetails = () => {
@@ -21,17 +22,21 @@ const MonitorDetails = () => {
   const { getToken } = useAuth();
 
   const fetchMonitorData = async () => {
-    const token = await getToken();
-    const response = await fetch(`http://localhost:3000/website-details/${id}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await response.json();
-    console.log(data);
-    setMonitor(data);
-    setLoading(false);
+    try {
+      const response = await fetch(`http://localhost:3000/website-details/${id}`);
+      if (!response.ok) {
+        console.error(`[MonitorDetails] API error: ${response.status}`);
+        setLoading(false);
+        return; // Don't set monitor to the error response object
+      }
+      const data = await response.json();
+      console.log(data);
+      setMonitor(data);
+    } catch (err) {
+      console.error('[MonitorDetails] Fetch failed:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -84,7 +89,8 @@ const MonitorDetails = () => {
   };
 
   const formatUptimePercentage = (percentage) => {
-    return percentage.toFixed(2);
+    if (percentage == null || isNaN(percentage)) return "0.00";
+    return Number(percentage).toFixed(2);
   };
 
   return (
@@ -175,6 +181,14 @@ const MonitorDetails = () => {
       </div>
       
       <div className="space-y-6">
+        {/* Live Validator World Map */}
+        <ValidatorMap
+          websiteId={id}
+          websiteName={monitor.websiteName}
+          websiteUrl={monitor.url}
+          websiteStatus={monitor.disabled ? "down" : "up"}
+        />
+
         <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/70 p-6 animate-slide-up">
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-white flex items-center gap-2 mb-2">
@@ -202,7 +216,7 @@ const MonitorDetails = () => {
           </CardHeader>
           <CardContent>
             <ResponseTimeChart 
-              initialData={monitor.averageLatencyPerMinute.map((latency) => ({
+              initialData={(monitor.averageLatencyPerMinute || []).map((latency) => ({
                 name: new Date(latency.timestamp).toLocaleTimeString(),
                 responseTime: latency.averageLatency
               }))}

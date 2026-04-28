@@ -23,6 +23,7 @@ import MonitorHeader from "@/components/monitor/MonitorHeader";
 import StatusHistory from "@/components/monitor/StatusHistory";
 import MonitorStats from "@/components/monitor/MonitorStats";
 import DetailsDashboard from "@/components/monitor/DetailsDashboard";
+import ValidatorMap from "@/components/monitor/ValidatorMap";
 
 const generateMockMonitorData = (id: string) => {
   const status = id === "3" ? "down" : id === "4" ? "warning" : "up";
@@ -260,6 +261,14 @@ const Monitor = () => {
         />
 
         <div className="mt-8 mb-6 space-y-8">
+          {/* Live Validator World Map */}
+          <ValidatorMap
+            websiteId={id}
+            websiteName={monitor.name}
+            websiteUrl={monitor.url}
+            websiteStatus={monitor.status}
+          />
+
           <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/70 p-6 animate-slide-up">
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2 mb-2">

@@ -27,6 +27,13 @@ const availableValidators = [];
 const websiteStates = {}; // Tracks the current state of monitored websites
 const COST_PER_VALIDATION = 100; // in lamports
 const HUB_PORT = process.env.HUB_PORT || 8081;
+
+// Track frontend dashboard clients (owner browsers) separately from validators
+const dashboardClients = new Set();
+
+// Per-validator, per-website last known status — used to detect status changes
+// Key: `${validatorId}:${websiteId}` → "Good" | "Bad"
+const validatorWebsiteStatus = {};
 const wss = new WebSocketServer({ port: HUB_PORT });
 console.log(`[HUB] WebSocket server is listening on port ${HUB_PORT}`);
 
@@ -134,6 +141,14 @@ wss.on('connection', async (ws) => {
         try {
             const data = JSON.parse(message.toString());
 
+            // ── Dashboard client handshake ─────────────────────────────────
+            if (data.type === 'dashboard-connect') {
+                dashboardClients.add(ws);
+                console.log(`[HUB] Dashboard client connected. Total: ${dashboardClients.size}`);
+                ws.send(JSON.stringify({ type: 'dashboard-connected', data: { message: 'Connected to Hub' } }));
+                return;
+            }
+
             if (data.type === 'signup') {
                 const verified = await verifyMessage(
                     `Signed message for ${data.data.callbackId}, ${data.data.publicKey}`,
@@ -155,6 +170,13 @@ wss.on('connection', async (ws) => {
     });
 
     ws.on('close', () => {
+        // Remove from dashboard clients if it was a dashboard connection
+        if (dashboardClients.has(ws)) {
+            dashboardClients.delete(ws);
+            console.log(`[HUB] Dashboard client disconnected. Total: ${dashboardClients.size}`);
+            return;
+        }
+
         const index = availableValidators.findIndex(v => v.socket === ws);
         if (index !== -1) {
             const validator = availableValidators[index];
@@ -620,6 +642,36 @@ setInterval(async () => {
                         latency,
                         createdAt: new Date(),
                     });
+
+                    // ── Real-time validator status update to dashboard ─────
+                    // Only broadcast when the validator's status for THIS site changes
+                    const vsKey = `${validatorId}:${website._id.toString()}`;
+                    const prevValidatorStatus = validatorWebsiteStatus[vsKey];
+                    if (prevValidatorStatus !== status) {
+                        validatorWebsiteStatus[vsKey] = status;
+                        if (dashboardClients.size > 0) {
+                            const updatePayload = JSON.stringify({
+                                type: 'validator-status-update',
+                                data: {
+                                    validatorId: validatorId.toString(),
+                                    websiteId: website._id.toString(),
+                                    status,          // "Good" or "Bad"
+                                    latency,
+                                    timestamp: new Date().toISOString(),
+                                },
+                            });
+                            dashboardClients.forEach((client) => {
+                                try {
+                                    if (client.readyState === 1) { // OPEN
+                                        client.send(updatePayload);
+                                    }
+                                } catch (e) {
+                                    console.error('[HUB] Failed to send to dashboard client:', e.message);
+                                }
+                            });
+                            console.log(`[HUB] 📡 Emitted validator-status-update: validator ${validatorId} → ${status} for ${website.url}`);
+                        }
+                    }
 
                     // Always pay the validator for their work
                     await Validator.findByIdAndUpdate(

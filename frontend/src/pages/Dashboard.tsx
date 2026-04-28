@@ -435,8 +435,11 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, [isLoaded, isSignedIn, user?.id]);
 
-  const handleAddMonitor = (newMonitor: Monitor) => {
-    setMonitors((current) => [...current, newMonitor]);
+  const handleAddMonitor = (newMonitor: any) => {
+    // POST /website returns a raw mongoose doc with _id, not id.
+    // Normalize it so the card's href correctly links to /monitor/:id
+    const normalized: Monitor = { ...newMonitor, id: newMonitor._id || newMonitor.id };
+    setMonitors((current) => [...current, normalized]);
   };
 
   const handleDeleteMonitor = async (monitorId: string) => {
