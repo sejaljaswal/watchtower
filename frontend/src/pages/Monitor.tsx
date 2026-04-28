@@ -256,6 +256,7 @@ const Monitor = () => {
           url={monitor.url}
           status={monitor.status}
           uptimePercentage={monitor.uptimePercentage}
+          disabled={monitor.disabled ?? false}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}
         />
@@ -279,7 +280,7 @@ const Monitor = () => {
               </h2>
               <p className="text-sm text-gray-400">Last 30 minutes of monitoring data</p>
             </div>
-            <StatusHistory statusHistory={monitor.statusHistory} />
+            <StatusHistory statusHistory={monitor.statusHistory} uptimePercentage={monitor.uptimePercentage || 0} />
           </div>
 
           <MonitorStats 
