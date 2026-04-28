@@ -306,6 +306,25 @@ async function verifyMessage(message, publicKey, signature) {
     return result;
 }
 
+async function triggerPushoverBuzzer(userKey, websiteName, url, reason) {
+    try {
+        const formData = new URLSearchParams();
+        formData.append('token', process.env.PUSHOVER_APP_TOKEN);
+        formData.append('user', userKey);
+        formData.append('message', `🚨 WATCHTOWER ALERT: ${websiteName} (${url}) is DOWN!\n\nReason: ${reason}`);
+        formData.append('title', "Website Down!");
+        formData.append('priority', '2');      // Emergency Priority
+        formData.append('retry', '30');        // Minimum retry interval is 30 seconds
+        formData.append('expire', '3600');     // Expire after 1 hour
+        formData.append('sound', 'WatchTowerSiren'); // Use the user's custom uploaded sound
+
+        await axios.post('https://api.pushover.net/1/messages.json', formData);
+        console.log(`[BUZZER] Emergency notification sent to user.`);
+    } catch (err) {
+        console.error(`[BUZZER] Failed to send Pushover: ${err.message}`);
+    }
+}
+
 /**
  * Handle the "Down" report finalization after high-trust verification.
  */
@@ -339,6 +358,16 @@ async function handleDownReport(website, location, reason, latitude, longitude) 
                 console.log("[EMAIL] Sending down notification...");
                 await sendEmail(userEmail, website.websiteName, website.url, location, reason);
                 await Website.findByIdAndUpdate(website._id, { lastEmailSent: now });
+            }
+
+            // Trigger Pushover Buzzer if configured
+            if (mail.pushoverUserKey) {
+                await triggerPushoverBuzzer(
+                    mail.pushoverUserKey, 
+                    website.websiteName, 
+                    website.url, 
+                    reason || "Unknown error"
+                );
             }
         }
 

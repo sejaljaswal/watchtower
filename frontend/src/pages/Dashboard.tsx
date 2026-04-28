@@ -389,6 +389,108 @@ const AddMonitor = ({ isOpen, onClose, onAdd }: AddMonitorProps) => {
   );
 };
 
+// ─── PushoverSettings ───────────────────────────────────────────────────────────
+
+interface PushoverSettingsProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const PushoverSettings = ({ isOpen, onClose }: PushoverSettingsProps) => {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [pushoverUserKey, setPushoverUserKey] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setSuccess(false);
+    try {
+      if (!isLoaded || !isSignedIn || !user?.id) {
+        throw new Error("User session is not ready");
+      }
+
+      const userId = user.id;
+      const response = await fetch("http://localhost:3000/user/pushover", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", userId },
+        body: JSON.stringify({ pushoverUserKey }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update settings");
+
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+        setSuccess(false);
+      }, 2000);
+    } catch {
+      setError("Failed to update settings. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-gray-800 rounded-xl max-w-md w-full border border-gray-700 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 pointer-events-none" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-700 transition-colors z-20"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <form onSubmit={handleSubmit} className="p-8 relative z-10">
+          <h2 className="text-2xl font-semibold mb-1 text-white flex items-center gap-2">
+            <Bell className="h-6 w-6 text-indigo-400" />
+            Alert Settings
+          </h2>
+          <p className="mb-6 text-gray-400 text-sm">
+            Configure your Pushover User Key to receive emergency "Buzzer" notifications on your phone when a website goes down.
+          </p>
+          {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+          {success && <p className="text-emerald-400 text-sm mb-4">Settings saved successfully!</p>}
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-300">
+                Pushover User Key
+              </label>
+              <input
+                className="w-full px-4 py-2.5 rounded-lg bg-gray-900 border border-gray-700 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                placeholder="e.g. u1234567890abcdef..."
+                value={pushoverUserKey}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPushoverUserKey(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Leave empty to disable mobile alerts.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 mt-8">
+            <Button onClick={onClose} variant="ghost" className="text-sm">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              disabled={isLoading}
+            >
+              {isLoading ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 interface DeleteDialog {
@@ -400,6 +502,7 @@ interface DeleteDialog {
 const Dashboard = () => {
   const { isLoaded, isSignedIn, user } = useUser();
   const [isAddMonitorOpen, setIsAddMonitorOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [monitorsActive, setMonitorsActive] = useState(true);
@@ -568,6 +671,13 @@ const Dashboard = () => {
                   Add Monitor
                 </button>
               </NoiseBackground>
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center justify-center p-3 rounded-full bg-gray-800/80 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all shadow-sm"
+                title="Alert Settings"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
@@ -704,6 +814,10 @@ const Dashboard = () => {
           isOpen={isAddMonitorOpen}
           onClose={() => setIsAddMonitorOpen(false)}
           onAdd={handleAddMonitor}
+        />
+        <PushoverSettings
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
         />
       </div>
     </div>

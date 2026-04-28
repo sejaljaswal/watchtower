@@ -5,6 +5,7 @@ const websiteStatusEnum = ["Good", "Bad"];
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   userId: { type: String, required: true, unique: true },
+  pushoverUserKey: { type: String },
 });
 
 const websiteSchema = new mongoose.Schema({

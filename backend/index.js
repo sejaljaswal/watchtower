@@ -62,6 +62,33 @@ app.post("/user", async (req, res) => {
   }
 });
 
+// Update Pushover Key
+app.put("/user/pushover", async (req, res) => {
+  try {
+    const userId = req.header('userId');
+    const { pushoverUserKey } = req.body;
+    const user = await User.findOneAndUpdate(
+      { userId },
+      { pushoverUserKey },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    await logEvent({
+      category: 'USER',
+      eventType: 'USER_SETTINGS_UPDATED',
+      actorId: userId,
+      message: `User updated Pushover settings`,
+    });
+
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // Validator Creation
 app.post("/validator", async (req, res) => {
   try {
