@@ -15,8 +15,8 @@ console.log(chalk.magentaBright(figlet.textSync('Validator Hub', {
 console.log(chalk.greenBright("Decentralized Uptime Monitoring Hub Server"));
 console.log(chalk.greenBright("=========================================\n"));
 
-const wss = new WebSocket.Server({ port: PORT }, () => {
-  logger.success(`WebSocket Hub Server running on ws://localhost:${PORT}`);
+const wss = new WebSocket.Server({ port: PORT, host: '0.0.0.0' }, () => {
+  logger.success(`WebSocket Hub Server running on port ${PORT}`);
   logger.log("Waiting for validators to connect...");
   logger.log("Press Ctrl+C to stop the server");
 });
@@ -41,9 +41,12 @@ wss.on("connection", (ws, req) => {
           location: data.data.location || "Unknown",
           connectionTime: new Date(),
           lastActive: new Date(),
-          ip: data.data.ip || clientIp, // Use provided IP or connection IP
-          clientIp // Also store the connection IP
+          ip: data.data.ip || clientIp, 
+          clientIp 
         });
+
+        // Link validatorId to this specific socket for clean disconnection
+        ws.validatorId = validatorId;
         
         logger.success(`Validator signed up with ID: ${validatorId}`);
         logger.data(`Public key: ${publicKey.substring(0, 16)}...`);
@@ -80,13 +83,11 @@ wss.on("connection", (ws, req) => {
   });
 
   ws.on("close", () => {
-    // Find and remove the disconnected validator
-    for (const [id, info] of validators.entries()) {
-      if (info.ip === clientIp) {
-        logger.warn(`Validator ${id} disconnected`);
-        validators.delete(id);
-        break;
-      }
+    if (ws.validatorId) {
+      logger.warn(`Validator ${ws.validatorId} disconnected`);
+      validators.delete(ws.validatorId);
+    } else {
+      logger.log(`Anonymous connection closed from ${clientIp}`);
     }
     
     logger.log(`Active validators: ${validators.size}`);
