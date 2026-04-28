@@ -87,7 +87,7 @@ const loadConfig = () => {
   if (!fs.existsSync(configPath)) {
     // Create a default config if one doesn't exist
     const defaultConfig = {
-      hubServer: "ws://localhost:8081",
+      hubServer: "wss://hackindia-spark-7-north-region-aksh.onrender.com",
       pingInterval: 10000
     };
 

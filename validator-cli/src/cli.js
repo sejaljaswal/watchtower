@@ -155,7 +155,7 @@ program
   .option("-P, --payout <publicKey>", "Payout public key")
   .option("-l, --location <location>", "Location (defaults to IP-based lookup)")
   .option("-a, --api <url>", "Backend API base URL", "https://watchtower-backend-0zc7.onrender.com")
-  .option("-u, --hub <url>", "Hub WebSocket URL", "https://hackindia-spark-7-north-region-aksh.onrender.com")
+  .option("-u, --hub <url>", "Hub WebSocket URL", "wss://hackindia-spark-7-north-region-aksh.onrender.com")
   .action(async (options) => {
     displayBanner();
 
@@ -190,8 +190,8 @@ program
       }
     }
 
-    const apiUrl = options.api || await promptInput({ message: 'Backend API URL:', default: 'http://localhost:3000' });
-    const hubUrl = options.hub || await promptInput({ message: 'Hub WebSocket URL:', default: 'ws://localhost:8081' });
+    const apiUrl = options.api || await promptInput({ message: 'Backend API URL:', default: 'https://watchtower-backend-0zc7.onrender.com' });
+    const hubUrl = options.hub || await promptInput({ message: 'Hub WebSocket URL:', default: 'wss://hackindia-spark-7-north-region-aksh.onrender.com' });
 
     // Hardware/Network Pre-Check
     const checkSpinner = ora({ text: "Testing connection to Hub URL...", color: "cyan" }).start();
