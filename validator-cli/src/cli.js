@@ -154,8 +154,8 @@ program
   .option("-p, --password <password>", "Validator password")
   .option("-P, --payout <publicKey>", "Payout public key")
   .option("-l, --location <location>", "Location (defaults to IP-based lookup)")
-  .option("-a, --api <url>", "Backend API base URL", "http://localhost:3000")
-  .option("-u, --hub <url>", "Hub WebSocket URL", "ws://localhost:8081")
+  .option("-a, --api <url>", "Backend API base URL", "https://watchtower-backend-0zc7.onrender.com")
+  .option("-u, --hub <url>", "Hub WebSocket URL", "https://hackindia-spark-7-north-region-aksh.onrender.com")
   .action(async (options) => {
     displayBanner();
 
