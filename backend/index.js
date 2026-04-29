@@ -246,9 +246,7 @@ app.get("/validator-detail", authenticateValidator, async (req, res) => {
     const recentWebsites = await WebsiteTick.find({ validatorId: _id })
       .sort({ createdAt: -1 })
       .limit(5);
-    const allValidatorsPendingPayout = await Validator.find().select(
-      "pendingPayouts"
-    );
+    const totalValidatorCount = await Validator.countDocuments();
 
     if (!validatorDetails) {
       return res.status(404).json({ message: "Validator not found" });
@@ -259,17 +257,28 @@ app.get("/validator-detail", authenticateValidator, async (req, res) => {
       eventType: { $in: ['BLOCKCHAIN_VALIDATOR_HOURLY', 'BLOCKCHAIN_SYNC', 'PAYOUT_SUCCESS'] }
     }).sort({ timestamp: -1 }).limit(20);
 
-    const averagePayout =
-      allValidatorsPendingPayout.reduce(
-        (acc, validator) => acc + (validator.pendingPayouts || 0),
-        0
-      ) / allValidatorsPendingPayout.length;
+    // Average Payout = total lifetime earnings / number of withdrawals
+    // Total earned = sum of all PAYOUT_SUCCESS amounts + current pendingPayouts
+    const payoutEvents = await EventLog.find({
+      actorId: _id.toString(),
+      eventType: 'PAYOUT_SUCCESS'
+    }).select('metadata');
+
+    const totalWithdrawn = payoutEvents.reduce(
+      (sum, evt) => sum + (evt.metadata?.amount || 0), 0
+    );
+    const totalEarned = totalWithdrawn + (validatorDetails.pendingPayouts || 0);
+    const withdrawalCount = payoutEvents.length;
+
+    const averagePayout = withdrawalCount > 0
+      ? (totalEarned / withdrawalCount).toFixed(2)
+      : totalEarned.toFixed(2); // No withdrawals yet — show total earned
 
     res.status(200).json({
       validator: validatorDetails,
       recentWebsites: recentWebsites,
       averagePayout: averagePayout,
-      totalValidator: allValidatorsPendingPayout.length,
+      totalValidator: totalValidatorCount,
       blockchainLogs: blockchainLogs,
     });
   } catch (err) {

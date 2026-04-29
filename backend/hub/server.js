@@ -15,7 +15,7 @@ import mongoose from 'mongoose';
 import nacl from 'tweetnacl';
 import nacl_util from "tweetnacl-util";
 import base58 from 'bs58';
-import { Website, Validator, WebsiteTick, DownLog, User } from '../model/model.js';
+import { Website, Validator, WebsiteTick, DownLog, User, EventLog } from '../model/model.js';
 import { logEvent } from '../utils/logger.js';
 import { syncReputationToChain, logStatusChangeToChain, logHourlySummaryToChain, logValidatorHourlyToChain } from '../blockchain/sync.js';
 import db from '../db/db.js';
@@ -767,18 +767,27 @@ setInterval(async () => {
                     );
 
                     // Broadcast payout/check update to dashboards
-                    // averagePayout = average pendingPayouts across ALL validators (matches API)
-                    const allValidators = await Validator.find({}, 'pendingPayouts');
-                    const networkAvgPayout = allValidators.length > 0
-                        ? (allValidators.reduce((sum, v) => sum + (v.pendingPayouts || 0), 0) / allValidators.length).toFixed(2)
-                        : '0';
+                    // Average payout = total lifetime earnings / number of withdrawals
+                    const payoutEvents = await EventLog.find({
+                        actorId: validatorId.toString(),
+                        eventType: 'PAYOUT_SUCCESS'
+                    }).select('metadata');
+                    const totalWithdrawn = payoutEvents.reduce(
+                        (sum, evt) => sum + (evt.metadata?.amount || 0), 0
+                    );
+                    const totalEarned = totalWithdrawn + updatedVal.pendingPayouts;
+                    const withdrawalCount = payoutEvents.length;
+                    const avgPayout = withdrawalCount > 0
+                        ? (totalEarned / withdrawalCount).toFixed(2)
+                        : totalEarned.toFixed(2);
+
                     broadcastToDashboards({
                         type: 'validator-stats-update',
                         data: {
                             validatorId: validatorId.toString(),
                             pendingPayouts: updatedVal.pendingPayouts,
                             totalChecks: updatedVal.totalChecks,
-                            averagePayout: networkAvgPayout
+                            averagePayout: avgPayout
                         }
                     });
 
