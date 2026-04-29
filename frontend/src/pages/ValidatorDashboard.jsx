@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Network,
   Server,
@@ -15,6 +15,44 @@ import nacl from "tweetnacl";
 import nacl_util from "tweetnacl-util";
 import axios from "axios";
 import { API_BASE_URL, HUB_WS_URL } from "../config";
+
+/**
+ * Skeleton shimmer placeholder — shown while data is loading.
+ */
+const Skeleton = ({ width = "w-24", height = "h-7" }) => (
+  <span
+    className={`inline-block ${width} ${height} bg-white/10 rounded-md animate-pulse`}
+  />
+);
+
+/**
+ * Flashes a green glow on the value whenever it changes (real-time update indicator).
+ * Falls back to a plain span with no flash on initial render.
+ */
+const FlashValue = ({ value, className = "", suffix = "" }) => {
+  const [flash, setFlash] = useState(false);
+  const prevRef = useRef(value);
+
+  useEffect(() => {
+    // Don't flash on the very first render (value going from 0 → real data)
+    if (prevRef.current !== value && prevRef.current !== null) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 700);
+      return () => clearTimeout(t);
+    }
+    prevRef.current = value;
+  }, [value]);
+
+  return (
+    <span
+      className={`${className} inline-block transition-all duration-300 ${
+        flash ? 'text-green-300 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : ''
+      }`}
+    >
+      {value}{suffix}
+    </span>
+  );
+};
 
 const ValidatorDashboard = () => {
   const navigate = useNavigate();
@@ -281,14 +319,9 @@ const ValidatorDashboard = () => {
     }
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin mr-2 h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
-        <span className="text-white text-lg">Loading...</span>
-      </div>
-    );
-  }
+  // No full-page spinner — we render the dashboard frame immediately
+  // and show skeleton placeholders in each card until data arrives.
+
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8">
@@ -402,8 +435,11 @@ const ValidatorDashboard = () => {
                 <span className="text-yellow-400 font-semibold text-sm">Trial Phase</span>
                 <span className="text-gray-300 text-xs">{Math.min(totalChecks, 500)} / 500 checks</span>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${Math.min((totalChecks / 500) * 100, 100)}%` }}></div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-yellow-400 h-2 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${Math.min((totalChecks / 500) * 100, 100)}%` }}
+                />
               </div>
               <p className="text-xs text-gray-400 mt-2">
                 Withdrawals unlocked after 500 checks and 24 hours.
@@ -419,12 +455,12 @@ const ValidatorDashboard = () => {
           transition={{ duration: 0.6 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
         >
-          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
+          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10 transition-all duration-300">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Total Validations</p>
-                <h3 className="text-2xl font-bold text-white">
-                  {mockStats.totalValidator}
+                <h3 className="text-2xl font-bold mt-1">
+                  {!isLoaded ? <Skeleton width="w-16" /> : <FlashValue value={mockStats.totalValidator} className="text-white" />}
                 </h3>
               </div>
               <div className="p-2 bg-purple-500/20 rounded-lg">
@@ -433,12 +469,12 @@ const ValidatorDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
+          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10 transition-all duration-300">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-gray-400 text-sm">Rewards Earned</p>
-                <h3 className="text-2xl font-bold text-white">
-                  {mockStats.rewards} Lamports
+                <h3 className="text-2xl font-bold mt-1">
+                  {!isLoaded ? <Skeleton width="w-32" /> : <FlashValue value={mockStats.rewards} suffix=" Lamports" className="text-white" />}
                 </h3>
               </div>
               <div className="p-2 bg-yellow-500/20 rounded-lg">
@@ -447,12 +483,12 @@ const ValidatorDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
+          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10 transition-all duration-300">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-400 text-sm">Averave Payout</p>
-                <h3 className="text-2xl font-bold text-green-400">
-                  {averagePayout} Lamports
+                <p className="text-gray-400 text-sm">Average Payout</p>
+                <h3 className="text-2xl font-bold mt-1">
+                  {!isLoaded ? <Skeleton width="w-32" /> : <FlashValue value={averagePayout} suffix=" Lamports" className="text-green-400" />}
                 </h3>
               </div>
               <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -470,12 +506,14 @@ const ValidatorDashboard = () => {
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Trust Score</p>
-                  <h3 className="text-2xl font-bold text-white">{trustScore}<span className="text-sm text-gray-400">/100</span></h3>
+                  <h3 className="text-2xl font-bold text-white mt-1">
+                    {!isLoaded ? <Skeleton width="w-12" /> : <><FlashValue value={trustScore} className="text-white" /><span className="text-sm text-gray-400">/100</span></>}
+                  </h3>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-500">Checks: {totalChecks}</p>
-                <p className="text-xs text-gray-500">Verified: {successfulVerifications}</p>
+                <p className="text-xs text-gray-500">Checks: {!isLoaded ? <Skeleton width="w-8" height="h-3" /> : <FlashValue value={totalChecks} className="text-gray-400" />}</p>
+                <p className="text-xs text-gray-500">Verified: {!isLoaded ? <Skeleton width="w-8" height="h-3" /> : <FlashValue value={successfulVerifications} className="text-gray-400" />}</p>
               </div>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2.5">

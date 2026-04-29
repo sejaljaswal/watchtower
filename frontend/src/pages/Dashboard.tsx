@@ -238,9 +238,10 @@ interface StatCardProps {
   value: string;
   icon: React.ReactNode;
   color: "green" | "red" | "blue" | "yellow";
+  loading?: boolean;
 }
 
-const StatCard = ({ title, value, icon, color }: StatCardProps) => (
+const StatCard = ({ title, value, icon, color, loading }: StatCardProps) => (
   <div
     className={`rounded-2xl border p-6 shadow-md relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group bg-gray-800/60 ${
       color === "green"
@@ -274,7 +275,11 @@ const StatCard = ({ title, value, icon, color }: StatCardProps) => (
         {icon}
       </div>
     </div>
-    <p className="text-4xl font-bold text-white mt-4 tracking-tight relative z-10">{value}</p>
+    {loading ? (
+      <div className="h-10 w-20 mt-4 rounded-lg bg-white/10 animate-pulse" />
+    ) : (
+      <p className="text-4xl font-bold text-white mt-4 tracking-tight relative z-10">{value}</p>
+    )}
   </div>
 );
 
@@ -506,6 +511,7 @@ const Dashboard = () => {
   const [isAddMonitorOpen, setIsAddMonitorOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [monitors, setMonitors] = useState<Monitor[]>([]);
+  const [isFetched, setIsFetched] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [monitorsActive, setMonitorsActive] = useState(true);
   const [activeValidators, setActiveValidators] = useState(0);
@@ -581,6 +587,8 @@ const Dashboard = () => {
       if (data.totalValidator !== undefined) setActiveValidators(data.totalValidator);
     } catch (error) {
       console.error("Error fetching dashboard details:", error);
+    } finally {
+      setIsFetched(true);
     }
   };
 
@@ -740,24 +748,28 @@ const Dashboard = () => {
               value={totalMonitors.toString()}
               icon={<BarChart className="h-5 w-5" />}
               color="blue"
+              loading={!isFetched}
             />
             <StatCard
               title="Operational"
               value={enabledCount.toString()}
               icon={<Cpu className="h-5 w-5" />}
               color="green"
+              loading={!isFetched}
             />
             <StatCard
               title="Paused"
               value={disabledCount.toString()}
               icon={<AlertCircle className="h-5 w-5" />}
               color="red"
+              loading={!isFetched}
             />
             <StatCard
               title="Network Validators"
               value={activeValidators.toString()}
               icon={<Network className="h-5 w-5" />}
               color="yellow"
+              loading={!isFetched}
             />
           </div>
         </div>

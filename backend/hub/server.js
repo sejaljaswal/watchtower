@@ -53,6 +53,7 @@ const hubLogEvent = async (params) => {
 const CALLBACKS = {};
 const availableValidators = [];
 const websiteStates = {}; // Tracks the current state of monitored websites
+const validatorWebsiteStatus = {}; // Per-validator, per-website last known status — Key: `${validatorId}:${websiteId}` → "Good" | "Bad"
 const COST_PER_VALIDATION = 100; // in lamports
 const HUB_PORT = process.env.HUB_PORT || 8081;
 
