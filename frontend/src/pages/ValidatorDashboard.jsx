@@ -117,14 +117,15 @@ const ValidatorDashboard = () => {
           const myId = validatorIdRef.current; // always up-to-date
 
           if (message.type === 'validator-stats-update') {
-            const { validatorId: updateId, trustScore: newTrust, pendingPayouts, totalChecks: newChecks } = message.data;
-            // Accept the update if it matches, or if we don't know our id yet skip
+            const { validatorId: updateId, trustScore: newTrust, pendingPayouts, totalChecks: newChecks, averagePayout: newAvgPayout } = message.data;
+            // Accept the update if it matches our validator id
             if (!myId || updateId === myId) {
               if (newTrust !== undefined) setTrustScore(newTrust);
               if (newChecks !== undefined) setTotalChecks(newChecks);
               if (pendingPayouts !== undefined) {
                 setMockStats(prev => ({ ...prev, rewards: pendingPayouts }));
               }
+              if (newAvgPayout !== undefined) setAveragePayout(newAvgPayout);
             }
           }
 

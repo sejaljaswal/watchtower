@@ -767,12 +767,16 @@ setInterval(async () => {
                     );
 
                     // Broadcast payout/check update to dashboards
+                    const avgPayout = updatedVal.totalChecks > 0
+                        ? (updatedVal.pendingPayouts / updatedVal.totalChecks).toFixed(2)
+                        : '0';
                     broadcastToDashboards({
                         type: 'validator-stats-update',
                         data: {
                             validatorId: validatorId.toString(),
                             pendingPayouts: updatedVal.pendingPayouts,
-                            totalChecks: updatedVal.totalChecks
+                            totalChecks: updatedVal.totalChecks,
+                            averagePayout: avgPayout
                         }
                     });
                 }
