@@ -767,8 +767,10 @@ setInterval(async () => {
                     );
 
                     // Broadcast payout/check update to dashboards
-                    const avgPayout = updatedVal.totalChecks > 0
-                        ? (updatedVal.pendingPayouts / updatedVal.totalChecks).toFixed(2)
+                    // averagePayout = average pendingPayouts across ALL validators (matches API)
+                    const allValidators = await Validator.find({}, 'pendingPayouts');
+                    const networkAvgPayout = allValidators.length > 0
+                        ? (allValidators.reduce((sum, v) => sum + (v.pendingPayouts || 0), 0) / allValidators.length).toFixed(2)
                         : '0';
                     broadcastToDashboards({
                         type: 'validator-stats-update',
@@ -776,9 +778,10 @@ setInterval(async () => {
                             validatorId: validatorId.toString(),
                             pendingPayouts: updatedVal.pendingPayouts,
                             totalChecks: updatedVal.totalChecks,
-                            averagePayout: avgPayout
+                            averagePayout: networkAvgPayout
                         }
                     });
+
                 }
             };
         });
