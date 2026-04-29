@@ -156,9 +156,8 @@ const ValidatorDashboard = () => {
             }
           }
 
-          if (message.type === 'network-stats-update') {
-            setMockStats(prev => ({ ...prev, totalValidator: message.data.activeValidators }));
-          }
+          // network-stats-update is for the owner dashboard (active node count)
+          // — not relevant to the validator's personal stats, so we ignore it here.
 
         } catch (err) {
           console.error("[WS] Error parsing message:", err);
@@ -460,7 +459,7 @@ const ValidatorDashboard = () => {
               <div>
                 <p className="text-gray-400 text-sm">Total Validations</p>
                 <h3 className="text-2xl font-bold mt-1">
-                  {!isLoaded ? <Skeleton width="w-16" /> : <FlashValue value={mockStats.totalValidator} className="text-white" />}
+                  {!isLoaded ? <Skeleton width="w-16" /> : <FlashValue value={totalChecks} className="text-white" />}
                 </h3>
               </div>
               <div className="p-2 bg-purple-500/20 rounded-lg">
