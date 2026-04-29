@@ -59,11 +59,14 @@ const ValidatorDashboard = () => {
   const wsRef = useRef(null);
   const [validatorId, setValidatorId] = useState(null);
 
-  const token = localStorage.getItem("token");
-  if (!token) {
-    navigate("/signin-validator");
-  }
-  const [isSignedIn, setIsSignedIn] = useState(true);
+  // Auth guard — redirect if no token (runs after mount, not during render)
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      navigate("/signin-validator");
+    }
+  }, [navigate]);
+
+  const [isSignedIn, setIsSignedIn] = useState(!!localStorage.getItem("token"));
   const [isLoaded, setIsLoaded] = useState(false);
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -261,6 +264,7 @@ const ValidatorDashboard = () => {
   }, []);
 
   const handleSignOut = () => {
+    localStorage.removeItem("token");
     setIsSignedIn(false);
     navigate("/signin-validator");
   };
@@ -757,95 +761,78 @@ const ValidatorDashboard = () => {
           </motion.div>
         </div>
 
-        {/* CLI Installation Guide */}
+        {/* CLI Quick Start Guide */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mt-8 bg-black/30 backdrop-blur-md rounded-xl border border-white/10 p-6"
         >
-          <h2 className="text-xl font-semibold text-white mb-4">
-            Validator CLI
-          </h2>
-          <div className="space-y-4">
-            <div className="bg-black/50 rounded-lg p-4 border border-white/5">
-              <h3 className="text-purple-400 font-medium mb-2">A decentralized uptime validator CLI for monitoring website availability</h3>
-              <p className="text-gray-300 mb-4">
-                Our Command Line Interface (CLI) tool allows validators to participate in the dPIN network. Follow these steps to get started:
-              </p>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-semibold text-white">
+              Validator CLI — Quick Start
+            </h2>
+            <a
+              href="https://www.npmjs.com/package/aksh-validator-cli"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-green-400 hover:text-green-300 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full transition-colors"
+            >
+              📦 npm package →
+            </a>
+          </div>
 
-              <div className="space-y-1 mb-4">
-                <h4 className="text-white font-medium">Requirements</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-300 ml-2">
-                  <li>Node.js 14 or higher</li>
-                  <li>npm 6 or higher</li>
-                  <li>Connection to a validator hub server</li>
-                </ul>
-              </div>
+          <p className="text-gray-400 text-sm mb-6">
+            Run your validator node using the published CLI. Install it globally, register once, and keep it running to earn rewards.
+          </p>
 
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-white font-medium mb-1">Installation</h4>
-                  <p className="text-gray-300 text-sm mb-2">Since this package is not published to the npm registry, you need to install it locally:</p>
-                  <pre className="bg-black/70 p-3 rounded-md overflow-x-auto text-gray-300 text-sm">
-                    <code># Clone or download the repository
-                      # Then navigate to the project directory
-                      cd validator-cli
-
-                      # Install dependencies
-                      npm install
-
-                      # Create a global symlink to use the CLI from anywhere
-                      npm link</code>
-                  </pre>
-                </div>
-
-                <div>
-                  <h4 className="text-white font-medium mb-1">Getting Started</h4>
-                  <p className="text-gray-300 text-sm mb-2">Here's how to get up and running with the Validator CLI:</p>
-
-                  <div className="pl-2 border-l-2 border-purple-500/30 ml-2">
-                    <p className="text-gray-300 text-sm mb-1">1. Make sure you have completed the installation steps above</p>
-
-                    <p className="text-gray-300 text-sm mb-1 mt-2">2. Start the validator client</p>
-                    <pre className="bg-black/70 p-2 rounded-md overflow-x-auto text-gray-300 text-sm">
-                      <code>validator-cli start ./config/privateKey.txt</code>
-                    </pre>
+          <div className="space-y-5">
+            {[
+              {
+                step: '1', label: 'Install the CLI',
+                desc: 'Install the validator client globally via npm.',
+                code: 'npm install -g aksh-validator-cli',
+                note: 'Requires Node.js 16+',
+              },
+              {
+                step: '2', label: 'Register Your Node',
+                desc: 'Register with the WatchTower network. You\'ll be prompted for your name, email, password, and Solana payout wallet.',
+                code: 'aksh-validator-cli register',
+                note: 'Run this once. Your key pair is generated and submitted automatically.',
+              },
+              {
+                step: '3', label: 'Start Validating',
+                desc: 'Connect to the hub and begin monitoring websites.',
+                code: 'aksh-validator-cli start',
+                note: 'Keep this running. Longer honest uptime = higher trust score and rewards.',
+              },
+              {
+                step: '4', label: 'Check Your Status',
+                desc: 'View your validator info and current trust score anytime.',
+                code: 'aksh-validator-cli info',
+                note: 'Or track everything live right here on your dashboard.',
+              },
+            ].map(({ step, label, desc, code, note }) => (
+              <div key={step} className="flex gap-4 items-start">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center text-green-300 text-sm font-bold">{step}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium mb-1">{label}</p>
+                  <p className="text-gray-400 text-sm mb-2">{desc}</p>
+                  <div className="bg-black/60 border border-white/10 rounded-lg px-4 py-2.5 font-mono text-sm text-green-300 flex items-center gap-2 overflow-x-auto">
+                    <span className="text-gray-600 select-none">$</span>
+                    <span className="flex-1">{code}</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(code); }}
+                      title="Copy command"
+                      className="flex-shrink-0 ml-2 p-1 rounded text-gray-500 hover:text-green-300 hover:bg-white/10 transition-all duration-200"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    </button>
                   </div>
+                  {note && <p className="text-gray-500 text-xs mt-1.5 italic">{note}</p>}
                 </div>
               </div>
-
-              <div className="mt-6">
-                <h4 className="text-white font-medium mb-2">Available Commands</h4>
-                <ul className="list-disc list-inside space-y-2 text-gray-300">
-                  <li><code className="bg-black/50 px-1 rounded text-purple-300">validator-cli start /path/to/privateKey.txt</code> - Start the validator</li>
-                  <li><code className="bg-black/50 px-1 rounded text-purple-300">validator-cli info /path/to/privateKey.txt</code> - View validator info</li>
-                  <li><code className="bg-black/50 px-1 rounded text-purple-300">validator-cli ping https://example.com</code> - Manually ping a URL</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg p-4 border border-purple-500/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-white font-medium">GitHub Repository</h3>
-                  <p className="text-gray-300 text-sm mt-1">
-                    Clone the repository, report issues, and contribute to the project
-                  </p>
-                </div>
-                <a
-                  href="https://www.github.com/lviffy/dPIN-cli"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-colors text-sm flex items-center"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                  </svg>
-                  View on GitHub
-                </a>
-              </div>
-            </div>
+            ))}
           </div>
         </motion.div>
       </div>
